@@ -80,8 +80,8 @@ function wasm_bench_pairing() {
 // pre.textContent = wasm_bench_fft_and_ifft();
 
 // benchmarking msm
-// pre.textContent = wasm_bench_msm();
+pre.textContent = wasm_bench_msm();
 
 // benchmarking pairing
-pre.textContent = wasm_bench_pairing();
+//pre.textContent = wasm_bench_pairing();
 

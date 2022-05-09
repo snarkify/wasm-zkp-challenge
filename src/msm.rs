@@ -1,5 +1,5 @@
 use ark_ec::{AffineCurve, ProjectiveCurve, msm};
-use ark_ff::{PrimeField, UniformRand, Zero};
+use ark_ff::{PrimeField, UniformRand, Zero, FpParameters, BigInteger};
 use ark_bls12_381::G1Affine;
 
 
@@ -30,9 +30,25 @@ pub fn compute_msm(
     msm::VariableBaseMSM::multi_scalar_mul(point_vec.as_slice(), scalar_vec.as_slice())
 }
 
+
+
+pub fn compute_pippenger(
+    point_vec: Vec<<<G1Affine as AffineCurve>::Projective as ProjectiveCurve>::Affine>,
+    scalar_vec: Vec<<<G1Affine as AffineCurve>::ScalarField as PrimeField>::BigInt>,
+) -> <G1Affine as AffineCurve>::Projective
+{
+    msm::VariableBaseMSM::pippenger_mul(point_vec.as_slice(), scalar_vec.as_slice())
+}
+
+
+
 #[test]
 fn test() {
-    let size = 1<<14;
+    use ark_ff::BigInteger;
+    let size = 1<<5;
     let (point_vec, scalar_vec) = generate_msm_inputs(size);
-    let res = compute_msm(point_vec, scalar_vec);
+    let res1 = compute_msm(point_vec.clone(), scalar_vec.clone());
+    let res2 = compute_pippenger(point_vec, scalar_vec);
+    println!("baseline = {:?}", res1);
+    println!("pippenger = {:?}", res2);
 }
