@@ -45,10 +45,11 @@ pub fn compute_pippenger(
 #[test]
 fn test() {
     use ark_ff::BigInteger;
-    let size = 1<<5;
+    let size = 1<<12;
     let (point_vec, scalar_vec) = generate_msm_inputs(size);
+    //let scalar = <<G1Affine as AffineCurve>::ScalarField as PrimeField>::BigInt::from_bits_le(&[true,false]);
     let res1 = compute_msm(point_vec.clone(), scalar_vec.clone());
-    let res2 = compute_pippenger(point_vec, scalar_vec);
-    println!("baseline = {:?}", res1);
-    println!("pippenger = {:?}", res2);
+    let res2 = compute_pippenger(point_vec.clone(), scalar_vec.clone());
+    println!("baseline = {:?}\n", res1.into_affine());
+    println!("pippenger = {:?}\n", res2.into_affine());
 }
