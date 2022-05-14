@@ -14,7 +14,7 @@ pub fn bench_fft_and_ifft(input_domain_dim: usize, output_domain_dim: usize) {
 #[wasm_bindgen]
 pub fn bench_msm(size: usize) {
     let (point_vec, scalar_vec) = msm::generate_msm_inputs(1<<size);
-    msm::compute_msm(point_vec, scalar_vec);
+    msm::compute_pippenger_affine(point_vec, scalar_vec);
 }
 
 #[wasm_bindgen]

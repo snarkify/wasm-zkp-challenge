@@ -40,6 +40,30 @@ pub fn compute_pippenger(
     msm::VariableBaseMSM::pippenger_mul(point_vec.as_slice(), scalar_vec.as_slice())
 }
 
+pub fn compute_pippenger_affine(
+    point_vec: Vec<<<G1Affine as AffineCurve>::Projective as ProjectiveCurve>::Affine>,
+    scalar_vec: Vec<<<G1Affine as AffineCurve>::ScalarField as PrimeField>::BigInt>,
+) -> <G1Affine as AffineCurve>::Projective {
+    let (tmp, s)= msm::VariableBaseMSM::pippenger_batch_affine(point_vec.as_slice(),scalar_vec.as_slice());
+    let mut Gs:Vec<_> = ark_std::cfg_into_iter!(tmp).map(|pts|{
+        G1Affine::batch_affine_addition(pts).into_projective()
+    }).collect();
+    let lowest = *Gs.first().unwrap();
+    // We're traversing windows from high to low.
+    lowest
+        + &Gs[1..]
+        .iter()
+        .rev()
+        .fold(<G1Affine as AffineCurve>::Projective::zero(), |mut total, sum_i| {
+            total += sum_i;
+            for _ in 0..s {
+                total.double_in_place();
+            }
+            total
+        })
+}
+
+
 
 
 #[test]
@@ -48,8 +72,11 @@ fn test() {
     let size = 1<<12;
     let (point_vec, scalar_vec) = generate_msm_inputs(size);
     //let scalar = <<G1Affine as AffineCurve>::ScalarField as PrimeField>::BigInt::from_bits_le(&[true,false]);
+    let ww = point_vec.clone();
     let res1 = compute_msm(point_vec.clone(), scalar_vec.clone());
     let res2 = compute_pippenger(point_vec.clone(), scalar_vec.clone());
+    let res3 = compute_pippenger_affine(point_vec.clone(), scalar_vec.clone());
     println!("baseline = {:?}\n", res1.into_affine());
     println!("pippenger = {:?}\n", res2.into_affine());
+    println!("affine= {:?}\n", res3.into_affine());
 }

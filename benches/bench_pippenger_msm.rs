@@ -1,10 +1,10 @@
-use wasm_zkp_challenge::msm::{generate_msm_inputs, compute_msm, compute_pippenger};
-use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_main};
+use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
+use wasm_zkp_challenge::msm::{compute_msm, compute_pippenger, compute_pippenger_affine, generate_msm_inputs};
 
 fn bench_pippenger_msm(c: &mut Criterion) {
     let mut group = c.benchmark_group("bench_pippenger_msm");
     for size in [8, 10, 12, 14].iter() {
-        let (point_vec, scalar_vec) = generate_msm_inputs(1<<size);
+        let (point_vec, scalar_vec) = generate_msm_inputs(1 << size);
         let point_vec = black_box(point_vec);
         let scalar_vec = black_box(scalar_vec);
         let input = (point_vec, scalar_vec);
@@ -14,9 +14,9 @@ fn bench_pippenger_msm(c: &mut Criterion) {
             &input,
             |b, input| {
                 b.iter(|| {
-                    compute_pippenger(input.0.clone(), input.1.clone());
+                    compute_pippenger_affine(input.0.clone(), input.1.clone());
                 })
-            }
+            },
         );
     }
 }
