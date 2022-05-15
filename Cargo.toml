@@ -43,18 +43,13 @@ ark-serialize = { path = "../algebra/serialize", optional = true, default-featur
 
 [dev-dependencies]
 criterion = "0.3"
+pprof = { version = "0.3", features = ["flamegraph"] }
 
 [profile.test]
 opt-level = 3
 
-[[bench]]
-name = "bench_fft_and_ifft"
-path="benches/bench_fft_and_ifft.rs"
-harness = false
-
-[[bench]]
-name = "bench_pairing"
-harness = false
+[profile.release]
+debug = true
 
 [[bench]]
 name = "bench_pippenger_msm"
