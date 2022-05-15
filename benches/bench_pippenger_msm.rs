@@ -1,5 +1,5 @@
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
-use wasm_zkp_challenge::msm::{compute_msm, compute_pippenger, compute_pippenger_affine, generate_msm_inputs};
+use wasm_zkp_challenge::msm::{compute_msm, compute_pippenger, compute_pippenger_affine,compute_msm_affine, generate_msm_inputs};
 
 fn bench_pippenger_msm(c: &mut Criterion) {
     let mut group = c.benchmark_group("bench_pippenger_msm");
@@ -14,7 +14,7 @@ fn bench_pippenger_msm(c: &mut Criterion) {
             &input,
             |b, input| {
                 b.iter(|| {
-                    compute_pippenger_affine(input.0.clone(), input.1.clone());
+                    compute_msm_affine(input.0.clone(), input.1.clone());
                 })
             },
         );

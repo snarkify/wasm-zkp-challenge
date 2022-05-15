@@ -30,7 +30,37 @@ pub fn compute_msm(
     msm::VariableBaseMSM::multi_scalar_mul(point_vec.as_slice(), scalar_vec.as_slice())
 }
 
-
+pub fn compute_msm_affine(
+    point_vec: Vec<<<G1Affine as AffineCurve>::Projective as ProjectiveCurve>::Affine>,
+    scalar_vec: Vec<<<G1Affine as AffineCurve>::ScalarField as PrimeField>::BigInt>,
+) -> <G1Affine as AffineCurve>::Projective
+{
+    let (window_buckets,s) = msm::VariableBaseMSM::multi_scalar_mul_batch_affine(point_vec.as_slice(), scalar_vec.as_slice());
+    let mut Gs:Vec<_> = ark_std::cfg_into_iter!(window_buckets).map(|pts|{
+        let zero =<G1Affine as AffineCurve>::Projective::zero();
+        let mut res = zero.clone();
+        let mut running_sum = zero;
+        pts.into_iter().rev().for_each(|b| {
+            let tmp = G1Affine::batch_affine_addition(b).into_projective();
+            running_sum += tmp;
+            res += &running_sum;
+        });
+        res
+    }).collect();
+    let lowest = *Gs.first().unwrap();
+    // We're traversing windows from high to low.
+    lowest
+        + &Gs[1..]
+        .iter()
+        .rev()
+        .fold(<G1Affine as AffineCurve>::Projective::zero(), |mut total, sum_i| {
+            total += sum_i;
+            for _ in 0..s {
+                total.double_in_place();
+            }
+            total
+        })
+}
 
 pub fn compute_pippenger(
     point_vec: Vec<<<G1Affine as AffineCurve>::Projective as ProjectiveCurve>::Affine>,
@@ -76,7 +106,9 @@ fn test() {
     let res1 = compute_msm(point_vec.clone(), scalar_vec.clone());
     let res2 = compute_pippenger(point_vec.clone(), scalar_vec.clone());
     let res3 = compute_pippenger_affine(point_vec.clone(), scalar_vec.clone());
+    let res4 = compute_msm_affine(point_vec.clone(), scalar_vec.clone());
     println!("baseline = {:?}\n", res1.into_affine());
     println!("pippenger = {:?}\n", res2.into_affine());
-    println!("affine= {:?}\n", res3.into_affine());
+    println!("pippenger-affine= {:?}\n", res3.into_affine());
+    println!("msm-affine= {:?}\n", res4.into_affine());
 }
