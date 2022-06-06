@@ -15,5 +15,4 @@ Cargo.lock
 www/.DS_Store
 www/output.txt
 www/package-lock.json
-test.sh
 bench.sh
