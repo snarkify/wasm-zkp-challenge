@@ -9,7 +9,7 @@ const median = arr => {
   return arr.length % 2 !== 0 ? nums[mid] : (nums[mid - 1] + nums[mid]) / 2;
 };
 
-const sizes = [8];
+const sizes = [10];
 
 const MARK_START_INPUT = (size) => `MSM 2^${size}: Start generate input`;
 const MARK_STOP_INPUT = (size) => `MSM 2^${size}: Stop generate input`;
