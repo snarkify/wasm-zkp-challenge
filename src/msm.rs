@@ -18,7 +18,7 @@ pub fn generate_msm_inputs(size: usize)
     let g_multiples = {
         let mut x = G1Projective::prime_subgroup_generator();
         let mut multiples = vec![x];
-         
+
         // TODO: Don't hardcode that constant.
         for _ in 0..FrParameters::MODULUS_BITS {
            x.double_in_place(); 

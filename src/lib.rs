@@ -7,6 +7,7 @@ pub mod msm;
 
 #[wasm_bindgen]
 pub struct PointVectorInput {
+    // What nonsense is this line?
     point_vec: Vec<<<G1Affine as AffineCurve>::Projective as ProjectiveCurve>::Affine>,
 }
 
@@ -41,5 +42,5 @@ impl ScalarVectorInput {
 
 #[wasm_bindgen]
 pub fn compute_msm(point_vec: PointVectorInput, scalar_vec: ScalarVectorInput) {
-    msm::compute_msm(point_vec.point_vec, scalar_vec.scalar_vec);
+    let _res = msm::compute_msm(point_vec.point_vec, scalar_vec.scalar_vec);
 }

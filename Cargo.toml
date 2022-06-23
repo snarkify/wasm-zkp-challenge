@@ -7,6 +7,7 @@ edition = "2021"
 
 # `wasm-opt` is on by default in for the release profile, but it can be
 # disabled by setting it to `false`
+# TODO(victor): Should this be enabled?
 [package.metadata.wasm-pack.profile.release]
 wasm-opt = false
 
