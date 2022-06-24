@@ -1,9 +1,8 @@
-use ark_bls12_381::{FrParameters, G1Affine, G1Projective};
+use ark_bls12_381::{FrConfig, G1Affine, G1Projective};
 use ark_ec::{msm, AffineCurve, ProjectiveCurve};
-use ark_ff::{fields::BitIteratorLE, FpParameters, PrimeField, UniformRand, Zero};
+use ark_ff::{fields::BitIteratorLE, BigInteger, MontConfig, PrimeField, UniformRand, Zero};
 use std::fs::File;
-use std::io::{BufRead, BufReader, BufWriter, Error, Write};
-use std::time::{Duration, Instant};
+use std::io::{BufRead, BufReader, Error, Write};
 
 pub fn generate_msm_inputs(
     size: usize,
@@ -14,7 +13,7 @@ pub fn generate_msm_inputs(
     let mut rng = ark_std::test_rng();
 
     let scalar_vec = (0..size)
-        .map(|_| <G1Affine as AffineCurve>::ScalarField::rand(&mut rng).into_repr())
+        .map(|_| <G1Affine as AffineCurve>::ScalarField::rand(&mut rng).into_bigint())
         .collect::<Vec<_>>();
 
     // Vector of multiples 2^i & G_1, used to precompute the "doubling" portion of double and add.
@@ -23,7 +22,7 @@ pub fn generate_msm_inputs(
         let mut multiples = vec![x];
 
         // TODO: Don't hardcode that constant.
-        for _ in 0..FrParameters::MODULUS_BITS {
+        for _ in 0..FrConfig::MODULUS.num_bits() {
             x.double_in_place();
             multiples.push(x);
         }
@@ -32,7 +31,7 @@ pub fn generate_msm_inputs(
 
     // Generate a number of random multipliers to apply to G_1 to generate a set of random bases.
     let factor_vec = (0..size)
-        .map(|_| <G1Affine as AffineCurve>::ScalarField::rand(&mut rng).into_repr())
+        .map(|_| <G1Affine as AffineCurve>::ScalarField::rand(&mut rng).into_bigint())
         .collect::<Vec<_>>();
 
     // Compute the multiples of G_1 using the precomputed tables of 2^i multiples.
@@ -60,15 +59,17 @@ pub fn compute_msm(
     point_vec: Vec<<<G1Affine as AffineCurve>::Projective as ProjectiveCurve>::Affine>,
     scalar_vec: Vec<<<G1Affine as AffineCurve>::ScalarField as PrimeField>::BigInt>,
 ) -> G1Projective {
-    msm::VariableBaseMSM::multi_scalar_mul(point_vec.as_slice(), scalar_vec.as_slice())
+    msm::VariableBase::msm(point_vec.as_slice(), scalar_vec.as_slice())
 }
 
+/*
 pub fn compute_msm_opt(
     point_vec: Vec<<<G1Affine as AffineCurve>::Projective as ProjectiveCurve>::Affine>,
     scalar_vec: Vec<<<G1Affine as AffineCurve>::ScalarField as PrimeField>::BigInt>,
 ) -> <G1Affine as AffineCurve>::Projective {
     msm::MultiExp::compute_msm_opt(point_vec.as_slice(), scalar_vec.as_slice())
 }
+*/
 
 pub fn write_to_file(
     scalar_vec: Vec<<<G1Affine as AffineCurve>::ScalarField as PrimeField>::BigInt>,
@@ -116,23 +117,25 @@ pub fn read_from_file(
     Ok(scalars)
 }
 
-#[test]
-fn test() {
-    let K = 16;
-    let size = 1 << K;
-    let (point_vec, scalar_vec) = generate_msm_inputs(size);
-    let _ = write_to_file(scalar_vec.clone(), "./scalar.txt");
-    //let scalar = <<G1Affine as AffineCurve>::ScalarField as PrimeField>::BigInt::from_bits_le(&[true,false]);
-    //let scalar_vec1 = read_from_file("./scalar.txt").unwrap();
-    let start = Instant::now();
-    let res1 = compute_msm(point_vec.clone(), scalar_vec.clone());
-    let duration = start.elapsed();
-    println!("baseline with size 1<<{}: {:?}", K, duration);
-    println!("\n baseline res = {:?}\n", res1.into_affine());
+mod test {
+    #[test]
+    fn test() {
+        let K = 16;
+        let size = 1 << K;
+        let (point_vec, scalar_vec) = generate_msm_inputs(size);
+        let _ = write_to_file(scalar_vec.clone(), "./scalar.txt");
+        //let scalar = <<G1Affine as AffineCurve>::ScalarField as PrimeField>::BigInt::from_bits_le(&[true,false]);
+        //let scalar_vec1 = read_from_file("./scalar.txt").unwrap();
+        let start = Instant::now();
+        let res1 = compute_msm(point_vec.clone(), scalar_vec.clone());
+        let duration = start.elapsed();
+        println!("baseline with size 1<<{}: {:?}", K, duration);
+        println!("\n baseline res = {:?}\n", res1.into_affine());
 
-    let start = Instant::now();
-    let res2 = compute_msm_opt(point_vec.clone(), scalar_vec.clone());
-    let duration = start.elapsed();
-    println!("msm_opt with size 1<<{}: {:?}", K, duration);
-    println!("\n msm_opt = {:?}\n", res2.into_affine());
+        let start = Instant::now();
+        let res2 = compute_msm_opt(point_vec.clone(), scalar_vec.clone());
+        let duration = start.elapsed();
+        println!("msm_opt with size 1<<{}: {:?}", K, duration);
+        println!("\n msm_opt = {:?}\n", res2.into_affine());
+    }
 }
