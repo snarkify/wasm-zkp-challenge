@@ -117,11 +117,15 @@ pub fn read_from_file(
     Ok(scalars)
 }
 
+#[cfg(test)]
 mod test {
+    use super::*;
+    use ark_std::time::Instant;
+
     #[test]
     fn test() {
-        let K = 16;
-        let size = 1 << K;
+        let k = 16;
+        let size = 1 << k;
         let (point_vec, scalar_vec) = generate_msm_inputs(size);
         let _ = write_to_file(scalar_vec.clone(), "./scalar.txt");
         //let scalar = <<G1Affine as AffineCurve>::ScalarField as PrimeField>::BigInt::from_bits_le(&[true,false]);
@@ -129,13 +133,15 @@ mod test {
         let start = Instant::now();
         let res1 = compute_msm(point_vec.clone(), scalar_vec.clone());
         let duration = start.elapsed();
-        println!("baseline with size 1<<{}: {:?}", K, duration);
+        println!("baseline with size 1<<{}: {:?}", k, duration);
         println!("\n baseline res = {:?}\n", res1.into_affine());
 
+        /*
         let start = Instant::now();
         let res2 = compute_msm_opt(point_vec.clone(), scalar_vec.clone());
         let duration = start.elapsed();
         println!("msm_opt with size 1<<{}: {:?}", K, duration);
         println!("\n msm_opt = {:?}\n", res2.into_affine());
+        */
     }
 }
