@@ -1,5 +1,5 @@
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
-use wasm_zkp_challenge::msm::{compute_msm, compute_pippenger, compute_pippenger_affine,compute_msm_affine, generate_msm_inputs};
+use wasm_zkp_challenge::msm::{compute_msm, generate_msm_inputs};
 mod perf;
 
 fn bench_pippenger_msm(c: &mut Criterion) {
@@ -18,7 +18,7 @@ fn bench_pippenger_msm(c: &mut Criterion) {
             &input,
             |b, input| {
                 b.iter(|| {
-                    let _res = compute_pippenger_affine(input.0.clone(), input.1.clone());
+                    let _res = compute_msm(input.0.clone(), input.1.clone());
                 })
             },
         );
