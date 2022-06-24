@@ -1,5 +1,6 @@
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
-use wasm_zkp_challenge::msm::{compute_msm, generate_msm_inputs};
+use wasm_zkp_challenge::msm::{compute_msm, compute_pippenger, compute_pippenger_affine,compute_msm_affine, generate_msm_inputs};
+mod perf;
 
 fn bench_pippenger_msm(c: &mut Criterion) {
     let mut group = c.benchmark_group("bench_pippenger_msm");
@@ -13,16 +14,20 @@ fn bench_pippenger_msm(c: &mut Criterion) {
 
         group.throughput(Throughput::Elements(1 << size));
         group.bench_with_input(
-            BenchmarkId::from_parameter(format!("input vector length: 2^{}", size)),
+            BenchmarkId::from_parameter(format!("input_vector_length_2_{}", size)),
             &input,
             |b, input| {
                 b.iter(|| {
-                    let _res = compute_msm(input.0.clone(), input.1.clone());
+                    let _res = compute_pippenger_affine(input.0.clone(), input.1.clone());
                 })
             },
         );
     }
 }
 
-criterion_group!(benches, bench_pippenger_msm);
+criterion_group!{
+    name = benches;
+    config = Criterion::default().with_profiler(perf::FlamegraphProfiler::new(100));
+    targets = bench_pippenger_msm
+}
 criterion_main!(benches);
