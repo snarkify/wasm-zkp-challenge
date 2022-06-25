@@ -1,6 +1,6 @@
-use ark_bls12_381::{FrConfig, G1Affine, G1Projective};
+use ark_bls12_381::{G1Affine, G1Projective};
 use ark_ec::{msm, AffineCurve, ProjectiveCurve};
-use ark_ff::{fields::BitIteratorLE, BigInteger, MontConfig, PrimeField, UniformRand, Zero};
+use ark_ff::{fields::BitIteratorLE, BigInteger, PrimeField, UniformRand, Zero};
 use std::fs::File;
 use std::io::{BufRead, BufReader, Error, Write};
 
@@ -22,7 +22,7 @@ pub fn generate_msm_inputs(
         let mut multiples = vec![x];
 
         // TODO: Don't hardcode that constant.
-        for _ in 0..FrConfig::MODULUS.num_bits() {
+        for _ in 0..<G1Affine as AffineCurve>::ScalarField::MODULUS_BIT_SIZE {
             x.double_in_place();
             multiples.push(x);
         }
