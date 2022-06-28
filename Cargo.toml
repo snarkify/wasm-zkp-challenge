@@ -31,16 +31,10 @@ ark-ff = { version = "0.3.0" }
 ark-ec = { version = "0.3.0" } 
 
 [patch.crates-io]
-ark-bls12-381 = { git = "https://github.com/arkworks-rs/curves", rev="9a89ea8a" }
+ark-bls12-381 = { path = "../ark/curves/bls12_381"}
+ark-ec = { path = "../ark/algebra/ec" }
+ark-ff = { path = "../ark/algebra/ff" }
 ark-std = { git = "https://github.com/arkworks-rs/std", rev="05b7a19a" }
-ark-ff = { git = "https://github.com/arkworks-rs/algebra", rev="13c298c2" }
-ark-ec = { git = "https://github.com/arkworks-rs/algebra", rev="13c298c2" } 
-
-# [patch.crates-io]
-# ark-ec = { path = "../algebra/ec" }
-# ark-ff = { path = "../algebra/ff" }
-# ark-poly = { path = "../algebra/poly" }
-# ark-serialize = { path = "../algebra/serialize", optional = true, default-features = false, features = ["derive"] }
 
 [dev-dependencies]
 criterion = "0.3"

@@ -62,14 +62,13 @@ pub fn compute_msm(
     msm::VariableBase::msm(point_vec.as_slice(), scalar_vec.as_slice())
 }
 
-/*
+/// Locally optimized version of the variable base MSM algorithm.
 pub fn compute_msm_opt(
     point_vec: Vec<<<G1Affine as AffineCurve>::Projective as ProjectiveCurve>::Affine>,
     scalar_vec: Vec<<<G1Affine as AffineCurve>::ScalarField as PrimeField>::BigInt>,
 ) -> <G1Affine as AffineCurve>::Projective {
     msm::MultiExp::compute_msm_opt(point_vec.as_slice(), scalar_vec.as_slice())
 }
-*/
 
 pub fn write_to_file(
     scalar_vec: Vec<<<G1Affine as AffineCurve>::ScalarField as PrimeField>::BigInt>,
@@ -122,26 +121,32 @@ mod test {
     use super::*;
     use ark_std::time::Instant;
 
+    // Code snippet for writing scalars to a file.
+    //let _ = write_to_file(scalar_vec.clone(), "./scalar.txt");
+    //let scalar = <<G1Affine as AffineCurve>::ScalarField as PrimeField>::BigInt::from_bits_le(&[true,false]);
+    //let scalar_vec1 = read_from_file("./scalar.txt").unwrap();
+
+    // Input sizes to use in the tests below.
+    const K: usize = 16;
+    const SIZE: usize = 1 << K;
+
     #[test]
-    fn test() {
-        let k = 16;
-        let size = 1 << k;
-        let (point_vec, scalar_vec) = generate_msm_inputs(size);
-        let _ = write_to_file(scalar_vec.clone(), "./scalar.txt");
-        //let scalar = <<G1Affine as AffineCurve>::ScalarField as PrimeField>::BigInt::from_bits_le(&[true,false]);
-        //let scalar_vec1 = read_from_file("./scalar.txt").unwrap();
+    fn baseline_msm_doesnt_panic() {
+        let (point_vec, scalar_vec) = generate_msm_inputs(SIZE);
         let start = Instant::now();
         let res1 = compute_msm(point_vec.clone(), scalar_vec.clone());
         let duration = start.elapsed();
-        println!("baseline with size 1<<{}: {:?}", k, duration);
+        println!("baseline with SIZE 1<<{}: {:?}", K, duration);
         println!("\n baseline res = {:?}\n", res1.into_affine());
+    }
 
-        /*
+    #[test]
+    fn optimized_msm_doesnt_panic() {
+        let (point_vec, scalar_vec) = generate_msm_inputs(SIZE);
         let start = Instant::now();
         let res2 = compute_msm_opt(point_vec.clone(), scalar_vec.clone());
         let duration = start.elapsed();
-        println!("msm_opt with size 1<<{}: {:?}", K, duration);
+        println!("msm_opt with SIZE 1<<{}: {:?}", K, duration);
         println!("\n msm_opt = {:?}\n", res2.into_affine());
-        */
     }
 }
