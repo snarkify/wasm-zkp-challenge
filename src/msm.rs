@@ -66,7 +66,7 @@ pub fn compute_msm(
 pub fn compute_msm_opt(
     point_vec: Vec<<<G1Affine as AffineCurve>::Projective as ProjectiveCurve>::Affine>,
     scalar_vec: Vec<<<G1Affine as AffineCurve>::ScalarField as PrimeField>::BigInt>,
-) -> <G1Affine as AffineCurve>::Projective {
+) -> G1Projective {
     msm::MultiExp::compute_msm_opt(point_vec.as_slice(), scalar_vec.as_slice())
 }
 

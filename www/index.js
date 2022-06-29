@@ -1,4 +1,4 @@
-import { compute_msm, PointVectorInput, ScalarVectorInput } from "wasm-prover";
+import { compute_msm, compute_msm_opt, PointVectorInput, ScalarVectorInput } from "wasm-prover";
 
 const pre = document.getElementById("wasm-prover");
 
@@ -9,7 +9,7 @@ const median = arr => {
   return arr.length % 2 !== 0 ? nums[mid] : (nums[mid - 1] + nums[mid]) / 2;
 };
 
-const sizes = [10];
+const sizes = [6];
 
 const MARK_START_INPUT = (size) => `MSM 2^${size}: Start generate input`;
 const MARK_STOP_INPUT = (size) => `MSM 2^${size}: Stop generate input`;
