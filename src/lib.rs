@@ -14,7 +14,6 @@ fn init_panic_hook() {
     console_error_panic_hook::set_once();
 }
 
-
 /// A println! style macro to allow output to the JS console.
 /// ```ignore
 /// crate::console_log!("hello from {}", "rust!");
@@ -66,11 +65,11 @@ impl ScalarVectorInput {
 #[wasm_bindgen]
 pub fn compute_msm(point_vec: PointVectorInput, scalar_vec: ScalarVectorInput) {
     init_panic_hook();
-    let _res = msm::compute_msm(point_vec.point_vec, scalar_vec.scalar_vec);
+    let _res = msm::compute_msm(&point_vec.point_vec, &scalar_vec.scalar_vec);
 }
 
 #[wasm_bindgen]
 pub fn compute_msm_opt(point_vec: PointVectorInput, scalar_vec: ScalarVectorInput) {
     init_panic_hook();
-    let _res = msm::compute_msm_opt(point_vec.point_vec, scalar_vec.scalar_vec);
+    let _res = msm::compute_msm_opt(&point_vec.point_vec, &scalar_vec.scalar_vec);
 }
