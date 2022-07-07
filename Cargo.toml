@@ -33,7 +33,7 @@ ark-bls12-381 = { version = "0.3.0" }
 ark-std = { version = "0.3.0" }
 ark-ff = { version = "0.3.0" }
 ark-ec = { version = "0.3.0" } 
-ark-serialize = { version = "0.3.0" } 
+ark-serialize = { path = "../ark/algebra/serialize", features = ["derive"] } 
 
 # The `console_error_panic_hook` crate provides better debugging of panics by
 # logging them with `console.error`. This is great for development, but requires
@@ -46,12 +46,12 @@ web-sys = { version = "0.3.58", features=["console"], optional = true }
 ark-bls12-381 = { path = "../ark/curves/bls12_381"}
 ark-ec = { path = "../ark/algebra/ec" }
 ark-ff = { path = "../ark/algebra/ff" }
-ark-serialize = { path = "../ark/algebra/serialize" } 
 ark-std = { git = "https://github.com/arkworks-rs/std", rev="05b7a19a" }
 
 [dev-dependencies]
 criterion = { version = "0.3" }
 pprof = { version = "0.3", features = ["flamegraph"] }
+serial_test = { version = "0.8.0" }
 
 [features]
 # Include a panic hook for printing panic messages to the JS console and web_sys support for adding

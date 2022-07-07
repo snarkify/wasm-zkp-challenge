@@ -1,6 +1,6 @@
 use clap::Parser;
-use std::fs;
 use wasm_zkp_challenge::msm;
+use std::path::Path;
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
@@ -21,13 +21,7 @@ struct Args {
 fn main() -> Result<(), msm::Error> {
     let args = Args::parse();
 
-    fs::create_dir_all(&args.dir)?;
-
-    let mut append: bool = false;
-    for _ in 0..args.count {
-        let (points, scalars) = msm::generate_msm_inputs(1 << args.size);
-        msm::serialize_input(&args.dir, &points, &scalars, append)?;
-        append = true;
-    }
+    let instances: Vec<_> = (0..args.count).map(|_| msm::Instance::generate(1 << args.size)).collect();
+    msm::write_instances(Path::new(&args.dir), &instances, false)?;
     Ok(())
 }

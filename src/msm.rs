@@ -1,23 +1,50 @@
 use ark_bls12_381::{G1Affine, G1Projective};
 use ark_ec::{msm, AffineCurve, ProjectiveCurve};
-use ark_ff::{fields::BitIteratorLE, BigInteger, PrimeField, UniformRand, Zero};
-use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, Write};
+use ark_ff::{fields::BitIteratorLE, PrimeField, UniformRand, Zero};
+use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, Read, SerializationError, Write};
 use blake3::Hash;
 use bytes::BufMut;
-use std::fs::File;
-use std::io::{BufRead, BufReader};
-
-// Define ScalarField and BigInt type aliases to avoid lengthy fully-qualified names.
-type ScalarField = <G1Affine as AffineCurve>::ScalarField;
-type BigInt = <ScalarField as PrimeField>::BigInt;
+use std::fs::{create_dir_all, File};
+use std::path::{Path};
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("could not serialize")]
     SerializationError(#[from] ark_serialize::SerializationError),
 
-    #[error("could not open file")]
-    FileOpenError(#[from] std::io::Error),
+    #[error("io error")]
+    IoError(#[from] std::io::Error),
+}
+
+// Define ScalarField and BigInt type aliases to avoid lengthy fully-qualified names.
+type ScalarField = <G1Affine as AffineCurve>::ScalarField;
+type BigInt = <ScalarField as PrimeField>::BigInt;
+
+/// A struct wrapping the input for an msm problem
+#[derive(Debug, CanonicalSerialize, CanonicalDeserialize)]
+pub struct Instance {
+    points: Vec<G1Affine>,
+    scalars: Vec<BigInt>,
+}
+
+impl Instance {
+    pub fn generate(size: usize) -> Self {
+        let (points, scalars) = generate_msm_inputs(size);
+        Self { points, scalars }
+    }
+
+    pub fn compute_msm(&self) -> G1Projective {
+        compute_msm(&self.points, &self.scalars)
+    }
+
+    pub fn compute_msm_opt(&self) -> G1Projective {
+        compute_msm_opt(&self.points, &self.scalars)
+    }
+
+    /// Get the size of the instance
+    pub fn size(&self) -> usize {
+        self.points.len()
+    }
 }
 
 pub fn generate_msm_inputs(size: usize) -> (Vec<G1Affine>, Vec<BigInt>) {
@@ -63,8 +90,7 @@ pub fn generate_msm_inputs(size: usize) -> (Vec<G1Affine>, Vec<BigInt>) {
         .collect::<Vec<_>>();
 
     let point_vec = G1Projective::batch_normalization_into_affine(&point_vec);
-
-    (point_vec, scalar_vec)
+    return (point_vec, scalar_vec)
 }
 
 /// Currently using Pippenger's algorithm for multi-scalar multiplication (MSM)
@@ -77,65 +103,44 @@ pub fn compute_msm_opt(point_vec: &[G1Affine], scalar_vec: &[BigInt]) -> G1Proje
     msm::MultiExp::compute_msm_opt(point_vec, scalar_vec)
 }
 
-pub fn serialize_input(
-    dir: &str,
-    points: &[G1Affine],
-    scalars: &[BigInt],
-    append: bool,
-) -> Result<(), Error> {
-    let points_path = format!("{}{}", dir, "/points");
-    let scalars_path = format!("{}{}", dir, "/scalars");
-    let (f1, f2) = if append {
-        let file1 = File::options()
-            .append(true)
-            .create(true)
-            .open(points_path)?;
-        let file2 = File::options()
-            .append(true)
-            .create(true)
-            .open(scalars_path)?;
-        (file1, file2)
-    } else {
-        let file1 = File::create(points_path)?;
-        let file2 = File::create(scalars_path)?;
-        (file1, file2)
+/// Load input vectors from the filesystem if they exist in the given directory.
+/// If not, generate and save new input vectors of the requests size.
+pub fn read_or_generate_instances<P: AsRef<Path>>(path: P, count: usize, size: usize) -> Result<Vec<Instance>, Error> {
+    // Read instances from the files system and return them if available.
+    match read_instances(&path) {
+        Err(Error::IoError(e)) if e.kind() == std::io::ErrorKind::NotFound => (),
+        result => return result,
     };
-    points.serialize(&f1)?;
-    scalars.serialize(&f2)?;
+
+    // Generate and write the new instances to the intended directory.
+    let generated: Vec<_> = (0..count).map(|_| Instance::generate(size)).collect();
+    write_instances(&path, &generated, false)?;
+
+    Ok(generated)
+}
+
+pub fn write_instances<P: AsRef<Path>>(path: P, instances: &[Instance], append: bool) -> Result<(), Error> {
+    // If the target directory does not exist, create it.
+    match path.as_ref().parent() {
+        Some(dir) => create_dir_all(dir)?,
+        None => (),
+    };
+
+    // If append is true, open in append mode. Otherwise truncate.
+    let file = if append {
+        File::options().append(true).create(true).open(path)?
+    } else {
+        File::create(path)?
+    };
+
+    instances.serialize(&file)?;
     Ok(())
 }
 
-pub fn deserialize_input(dir: &str) -> Result<(Vec<Vec<G1Affine>>, Vec<Vec<BigInt>>), Error> {
-    let mut points_result = Vec::new();
-    let mut scalars_result = Vec::new();
-    let points_path = format!("{}{}", dir, "/points");
-    let scalars_path = format!("{}{}", dir, "/scalars");
-    let f1 = File::open(points_path)?;
-    let f2 = File::open(scalars_path)?;
-
-    loop {
-        let points = Vec::<G1Affine>::deserialize(&f1);
-        let scalars = Vec::<BigInt>::deserialize(&f2);
-
-        let points = match points {
-            Ok(x) => x,
-            _ => {
-                break;
-            }
-        };
-
-        let scalars = match scalars {
-            Ok(x) => x,
-            _ => {
-                break;
-            }
-        };
-
-        points_result.push(points);
-        scalars_result.push(scalars);
-    }
-
-    Ok((points_result, scalars_result))
+pub fn read_instances<P: AsRef<Path>>(path: P) -> Result<Vec<Instance>, Error> {
+    let file = File::open(path)?;
+    let instances = Vec::<Instance>::deserialize(&file)?;
+    Ok(instances)
 }
 
 pub fn hash<E: CanonicalSerialize>(elements: &[E]) -> Result<Hash, Error> {
@@ -148,47 +153,53 @@ pub fn hash<E: CanonicalSerialize>(elements: &[E]) -> Result<Hash, Error> {
 mod test {
     use super::*;
     use ark_std::time::Instant;
-    use std::fs;
+    use serial_test::serial;
+    use std::path::PathBuf;
 
     // Input sizes to use in the tests below.
     const K: usize = 16;
     const SIZE: usize = 1 << K;
-    const TEST_DIRECTORY: &'static str = "./tests/";
+    const TEST_DIR_BASE: &'static str = "./.test";
 
-    #[test]
-    fn baseline_msm_doesnt_panic() {
-        let (point_vec, scalar_vec) = generate_msm_inputs(SIZE);
-        let start = Instant::now();
-        let res1 = compute_msm(&point_vec, &scalar_vec);
-        let duration = start.elapsed();
-        println!("baseline with SIZE 1<<{}: {:?}", K, duration);
-        println!("\n baseline res = {:?}\n", res1.into_affine());
+    fn test_instance_path(k: usize) -> PathBuf {
+        Path::new(TEST_DIR_BASE).join(format!("1x{}", k)).join("instances")
     }
 
     #[test]
-    fn optimized_msm_doesnt_panic() {
-        let (point_vec, scalar_vec) = generate_msm_inputs(SIZE);
+    #[serial]
+    fn baseline_msm_doesnt_panic() -> Result<(), Error> {
+        let instances = read_or_generate_instances(&test_instance_path(K), 1, SIZE)?;
         let start = Instant::now();
-        let res2 = compute_msm_opt(&point_vec, &scalar_vec);
+        let res = instances[0].compute_msm();
+        let duration = start.elapsed();
+        println!("baseline with SIZE 1<<{}: {:?}", K, duration);
+        println!("\n baseline res = {:?}\n", res.into_affine());
+        Ok(())
+    }
+
+    #[test]
+    #[serial]
+    fn optimized_msm_doesnt_panic() -> Result<(), Error> {
+        let instances = read_or_generate_instances(&test_instance_path(K), 1, SIZE)?;
+        let start = Instant::now();
+        let res = instances[0].compute_msm_opt();
         let duration = start.elapsed();
         println!("msm_opt with SIZE 1<<{}: {:?}", K, duration);
-        println!("\n msm_opt = {:?}\n", res2.into_affine());
+        println!("\n msm_opt = {:?}\n", res.into_affine());
+        Ok(())
     }
 
     #[test]
     fn serialization_derserialization_are_consistent() -> Result<(), Error> {
-        fs::create_dir_all(TEST_DIRECTORY)?;
-
         let serialize_hash = {
-            let (points, scalars) = generate_msm_inputs(1 << 6);
-            serialize_input(TEST_DIRECTORY, &points, &scalars, false)?;
-
-            (hash(&points)?, hash(&scalars)?)
+            let instances = vec![Instance::generate(1 << 6)];
+            write_instances(&test_instance_path(6), &instances, false)?;
+            hash(&instances)?
         };
 
         let deserialize_hash = {
-            let (points, scalars) = deserialize_input(TEST_DIRECTORY)?;
-            (hash(&points[0])?, hash(&scalars[0])?)
+            let instances = read_instances(&test_instance_path(6))?;
+            hash(&instances)?
         };
         assert_eq!(serialize_hash, deserialize_hash);
         Ok(())
