@@ -2,6 +2,8 @@ use ark_bls12_381::{G1Affine, G1Projective};
 use ark_ec::{msm, AffineCurve, ProjectiveCurve};
 use ark_ff::{fields::BitIteratorLE, BigInteger, PrimeField, UniformRand, Zero};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, Write};
+use blake3::Hash;
+use bytes::BufMut;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 
@@ -18,12 +20,7 @@ pub enum Error {
     FileOpenError(#[from] std::io::Error),
 }
 
-pub fn generate_msm_inputs(
-    size: usize,
-) -> (
-    Vec<G1Affine>,
-    Vec<BigInt>
-) {
+pub fn generate_msm_inputs(size: usize) -> (Vec<G1Affine>, Vec<BigInt>) {
     let mut rng = ark_std::test_rng();
 
     let scalar_vec = (0..size)
@@ -71,72 +68,19 @@ pub fn generate_msm_inputs(
 }
 
 /// Currently using Pippenger's algorithm for multi-scalar multiplication (MSM)
-pub fn compute_msm(
-    point_vec: &[G1Affine],
-    scalar_vec: &[BigInt],
-) -> G1Projective {
+pub fn compute_msm(point_vec: &[G1Affine], scalar_vec: &[BigInt]) -> G1Projective {
     msm::VariableBase::msm(point_vec, scalar_vec)
 }
 
 /// Locally optimized version of the variable base MSM algorithm.
-pub fn compute_msm_opt(
-    point_vec: &[G1Affine],
-    scalar_vec: &[BigInt],
-) -> G1Projective {
+pub fn compute_msm_opt(point_vec: &[G1Affine], scalar_vec: &[BigInt]) -> G1Projective {
     msm::MultiExp::compute_msm_opt(point_vec, scalar_vec)
 }
 
-pub fn write_scalar_bits_to_file(
-    scalar_vec: &[BigInt],
-    scalar_file: &str,
-) -> Result<(), std::io::Error> {
-    let mut output2 = File::create(scalar_file)?;
-    for scalar in scalar_vec {
-        let bits = scalar.to_bits_be();
-        let bits = bits
-            .into_iter()
-            .map(|x| {
-                if x {
-                    format!("{}", 1)
-                } else {
-                    format!("{}", 0)
-                }
-            })
-            .collect::<Vec<String>>()
-            .join("");
-        write!(output2, "{}\n", bits)?;
-    }
-    Ok(())
-}
-
-pub fn read_scalar_bits_from_file(
-    file_loc: &str,
-) -> Result<Vec<BigInt>, std::io::Error> {
-    let mut scalars = Vec::new();
-    let input = File::open(file_loc)?;
-    let buffered = BufReader::new(input);
-    for line in buffered.lines() {
-        let mut tmp = Vec::new();
-        let line = line?;
-        for c in line.chars() {
-            if c == '0' {
-                tmp.push(false);
-            } else {
-                tmp.push(true);
-            }
-        }
-        let scalar =
-            BigInt::from_bits_be(&tmp);
-        scalars.push(scalar);
-    }
-    Ok(scalars)
-}
-
-/*
 pub fn serialize_input(
     dir: &str,
-    points: &[Point],
-    scalars: &[Scalar],
+    points: &[G1Affine],
+    scalars: &[BigInt],
     append: bool,
 ) -> Result<(), Error> {
     let points_path = format!("{}{}", dir, "/points");
@@ -161,7 +105,7 @@ pub fn serialize_input(
     Ok(())
 }
 
-pub fn deserialize_input(dir: &str) -> Result<(Vec<Vec<Point>>, Vec<Vec<Scalar>>), Error> {
+pub fn deserialize_input(dir: &str) -> Result<(Vec<Vec<G1Affine>>, Vec<Vec<BigInt>>), Error> {
     let mut points_result = Vec::new();
     let mut scalars_result = Vec::new();
     let points_path = format!("{}{}", dir, "/points");
@@ -170,8 +114,8 @@ pub fn deserialize_input(dir: &str) -> Result<(Vec<Vec<Point>>, Vec<Vec<Scalar>>
     let f2 = File::open(scalars_path)?;
 
     loop {
-        let points = Vec::<Point>::deserialize(&f1);
-        let scalars = Vec::<Scalar>::deserialize(&f2);
+        let points = Vec::<G1Affine>::deserialize(&f1);
+        let scalars = Vec::<BigInt>::deserialize(&f2);
 
         let points = match points {
             Ok(x) => x,
@@ -193,27 +137,29 @@ pub fn deserialize_input(dir: &str) -> Result<(Vec<Vec<Point>>, Vec<Vec<Scalar>>
 
     Ok((points_result, scalars_result))
 }
-*/
+
+pub fn hash<E: CanonicalSerialize>(elements: &[E]) -> Result<Hash, Error> {
+    let mut buffer = vec![].writer();
+    elements.serialize(&mut buffer)?;
+    Ok(blake3::hash(&buffer.into_inner()))
+}
 
 #[cfg(test)]
 mod test {
     use super::*;
     use ark_std::time::Instant;
-
-    // Code snippet for writing scalars to a file.
-    //let _ = write_to_file(scalar_vec.clone(), "./scalar.txt");
-    //let scalar = <<G1Affine as AffineCurve>::ScalarField as PrimeField>::BigInt::from_bits_le(&[true,false]);
-    //let scalar_vec1 = read_from_file("./scalar.txt").unwrap();
+    use std::fs;
 
     // Input sizes to use in the tests below.
     const K: usize = 16;
     const SIZE: usize = 1 << K;
+    const TEST_DIRECTORY: &'static str = "./tests/";
 
     #[test]
     fn baseline_msm_doesnt_panic() {
         let (point_vec, scalar_vec) = generate_msm_inputs(SIZE);
         let start = Instant::now();
-        let res1 = compute_msm(point_vec.clone(), scalar_vec.clone());
+        let res1 = compute_msm(&point_vec, &scalar_vec);
         let duration = start.elapsed();
         println!("baseline with SIZE 1<<{}: {:?}", K, duration);
         println!("\n baseline res = {:?}\n", res1.into_affine());
@@ -223,9 +169,28 @@ mod test {
     fn optimized_msm_doesnt_panic() {
         let (point_vec, scalar_vec) = generate_msm_inputs(SIZE);
         let start = Instant::now();
-        let res2 = compute_msm_opt(&point_vec, scalar_vec.clone());
+        let res2 = compute_msm_opt(&point_vec, &scalar_vec);
         let duration = start.elapsed();
         println!("msm_opt with SIZE 1<<{}: {:?}", K, duration);
         println!("\n msm_opt = {:?}\n", res2.into_affine());
+    }
+
+    #[test]
+    fn serialization_derserialization_are_consistent() -> Result<(), Error> {
+        fs::create_dir_all(TEST_DIRECTORY)?;
+
+        let serialize_hash = {
+            let (points, scalars) = generate_msm_inputs(1 << 6);
+            serialize_input(TEST_DIRECTORY, &points, &scalars, false)?;
+
+            (hash(&points)?, hash(&scalars)?)
+        };
+
+        let deserialize_hash = {
+            let (points, scalars) = deserialize_input(TEST_DIRECTORY)?;
+            (hash(&points[0])?, hash(&scalars[0])?)
+        };
+        assert_eq!(serialize_hash, deserialize_hash);
+        Ok(())
     }
 }
