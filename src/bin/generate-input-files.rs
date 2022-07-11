@@ -5,9 +5,9 @@ use wasm_zkp_challenge::msm;
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
 struct Args {
-    /// Output directory to store the generated input vectors.
+    /// Output path to store the generated input vectors.
     #[clap(short, long, value_parser)]
-    dir: String,
+    file: String,
 
     /// Count of input vectors to generate.
     #[clap(short, long, value_parser, default_value_t = 10)]
@@ -24,6 +24,6 @@ fn main() -> Result<(), msm::Error> {
     let instances: Vec<_> = (0..args.count)
         .map(|_| msm::Instance::generate(1 << args.size))
         .collect();
-    msm::write_instances(Path::new(&args.dir), &instances, false)?;
+    msm::write_instances(Path::new(&args.file), &instances, false)?;
     Ok(())
 }
