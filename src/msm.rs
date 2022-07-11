@@ -1,11 +1,11 @@
-use ark_bls12_381::{G1Affine, G1Projective};
+pub use ark_bls12_381::{G1Affine, G1Projective};
 use ark_ec::{msm, AffineCurve, ProjectiveCurve};
 use ark_ff::{fields::BitIteratorLE, PrimeField, UniformRand, Zero};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, Read, SerializationError, Write};
 use blake3::Hash;
 use bytes::BufMut;
 use std::fs::{create_dir_all, File};
-use std::path::{Path};
+use std::path::Path;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -17,14 +17,14 @@ pub enum Error {
 }
 
 // Define ScalarField and BigInt type aliases to avoid lengthy fully-qualified names.
-type ScalarField = <G1Affine as AffineCurve>::ScalarField;
-type BigInt = <ScalarField as PrimeField>::BigInt;
+pub type ScalarField = <G1Affine as AffineCurve>::ScalarField;
+pub type BigInt = <ScalarField as PrimeField>::BigInt;
 
 /// A struct wrapping the input for an msm problem
 #[derive(Debug, CanonicalSerialize, CanonicalDeserialize)]
 pub struct Instance {
-    points: Vec<G1Affine>,
-    scalars: Vec<BigInt>,
+    pub points: Vec<G1Affine>,
+    pub scalars: Vec<BigInt>,
 }
 
 impl Instance {
@@ -90,7 +90,7 @@ pub fn generate_msm_inputs(size: usize) -> (Vec<G1Affine>, Vec<BigInt>) {
         .collect::<Vec<_>>();
 
     let point_vec = G1Projective::batch_normalization_into_affine(&point_vec);
-    return (point_vec, scalar_vec)
+    return (point_vec, scalar_vec);
 }
 
 /// Currently using Pippenger's algorithm for multi-scalar multiplication (MSM)
@@ -105,7 +105,11 @@ pub fn compute_msm_opt(point_vec: &[G1Affine], scalar_vec: &[BigInt]) -> G1Proje
 
 /// Load input vectors from the filesystem if they exist in the given directory.
 /// If not, generate and save new input vectors of the requests size.
-pub fn read_or_generate_instances<P: AsRef<Path>>(path: P, count: usize, size: usize) -> Result<Vec<Instance>, Error> {
+pub fn read_or_generate_instances<P: AsRef<Path>>(
+    path: P,
+    count: usize,
+    size: usize,
+) -> Result<Vec<Instance>, Error> {
     // Read instances from the files system and return them if available.
     match read_instances(&path) {
         Err(Error::IoError(e)) if e.kind() == std::io::ErrorKind::NotFound => (),
@@ -119,7 +123,11 @@ pub fn read_or_generate_instances<P: AsRef<Path>>(path: P, count: usize, size: u
     Ok(generated)
 }
 
-pub fn write_instances<P: AsRef<Path>>(path: P, instances: &[Instance], append: bool) -> Result<(), Error> {
+pub fn write_instances<P: AsRef<Path>>(
+    path: P,
+    instances: &[Instance],
+    append: bool,
+) -> Result<(), Error> {
     // If the target directory does not exist, create it.
     match path.as_ref().parent() {
         Some(dir) => create_dir_all(dir)?,
@@ -133,19 +141,22 @@ pub fn write_instances<P: AsRef<Path>>(path: P, instances: &[Instance], append: 
         File::create(path)?
     };
 
-    instances.serialize(&file)?;
+    // We use unchecked because this is not an adversarial environment and it is way faster.
+    instances.serialize_unchecked(&file)?;
     Ok(())
 }
 
 pub fn read_instances<P: AsRef<Path>>(path: P) -> Result<Vec<Instance>, Error> {
     let file = File::open(path)?;
-    let instances = Vec::<Instance>::deserialize(&file)?;
+
+    // We use unchecked because this is not an adversarial environment and it is way faster.
+    let instances = Vec::<Instance>::deserialize_unchecked(&file)?;
     Ok(instances)
 }
 
 pub fn hash<E: CanonicalSerialize>(elements: &[E]) -> Result<Hash, Error> {
     let mut buffer = vec![].writer();
-    elements.serialize(&mut buffer)?;
+    elements.serialize_unchecked(&mut buffer)?;
     Ok(blake3::hash(&buffer.into_inner()))
 }
 
@@ -162,7 +173,9 @@ mod test {
     const TEST_DIR_BASE: &'static str = "./.test";
 
     fn test_instance_path(k: usize) -> PathBuf {
-        Path::new(TEST_DIR_BASE).join(format!("1x{}", k)).join("instances")
+        Path::new(TEST_DIR_BASE)
+            .join(format!("1x{}", k))
+            .join("instances")
     }
 
     #[test]

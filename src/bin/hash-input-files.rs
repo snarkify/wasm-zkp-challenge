@@ -1,6 +1,6 @@
 use clap::Parser;
-use wasm_zkp_challenge::msm;
 use std::path::Path;
+use wasm_zkp_challenge::msm;
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]

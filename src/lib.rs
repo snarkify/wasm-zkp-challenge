@@ -3,6 +3,9 @@ use wasm_bindgen::prelude::*;
 use ark_bls12_381::G1Affine;
 use ark_ec::{AffineCurve, ProjectiveCurve};
 use ark_ff::PrimeField;
+use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, Read, SerializationError, Write};
+
+type Result<T> = std::result::Result<T, JsValue>;
 
 #[cfg(feature = "debug")]
 use console_error_panic_hook;
@@ -63,13 +66,63 @@ impl ScalarVectorInput {
 }
 
 #[wasm_bindgen]
-pub fn compute_msm(point_vec: PointVectorInput, scalar_vec: ScalarVectorInput) {
-    init_panic_hook();
-    let _res = msm::compute_msm(&point_vec.point_vec, &scalar_vec.scalar_vec);
+pub struct InstanceObject {
+    points: Vec<msm::G1Affine>,
+    scalars: Vec<msm::BigInt>,
 }
 
 #[wasm_bindgen]
-pub fn compute_msm_opt(point_vec: PointVectorInput, scalar_vec: ScalarVectorInput) {
+pub struct InstanceObjectVector {
+    instances: Vec<InstanceObject>,
+}
+
+#[wasm_bindgen]
+impl InstanceObjectVector {
+    #[wasm_bindgen(method, getter)]
+    pub fn length(&self) -> usize {
+        self.instances.len()
+    }
+
+    // Copy the instance to hand off the the JS VM.
+    // Note that this copies the full undderlying data, which may be quite large.
+    pub fn at(&self, i: usize) -> InstanceObject {
+        InstanceObject {
+            points: self.instances[i].points.clone(),
+            scalars: self.instances[i].scalars.clone(),
+        }
+    }
+}
+
+#[wasm_bindgen]
+pub fn deserialize_msm_inputs(data: &[u8]) -> InstanceObjectVector {
     init_panic_hook();
-    let _res = msm::compute_msm_opt(&point_vec.point_vec, &scalar_vec.scalar_vec);
+    let instances = Vec::<msm::Instance>::deserialize_unchecked(data).unwrap();
+    InstanceObjectVector {
+        instances: instances
+            .into_iter()
+            .map(|i| InstanceObject {
+                points: i.points,
+                scalars: i.scalars,
+            })
+            .collect(),
+    }
+}
+
+#[wasm_bindgen]
+pub fn generate_msm_inputs(size: usize) -> InstanceObject {
+    init_panic_hook();
+    let (points, scalars) = msm::generate_msm_inputs(size);
+    InstanceObject { points, scalars }
+}
+
+#[wasm_bindgen]
+pub fn compute_msm(instance: &InstanceObject) {
+    init_panic_hook();
+    let _res = msm::compute_msm(&instance.points, &instance.scalars);
+}
+
+#[wasm_bindgen]
+pub fn compute_msm_opt(instance: &InstanceObject) {
+    init_panic_hook();
+    let _res = msm::compute_msm_opt(&instance.points, &instance.scalars);
 }

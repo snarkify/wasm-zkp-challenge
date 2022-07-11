@@ -1,12 +1,14 @@
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
-use wasm_zkp_challenge::msm::{read_or_generate_instances};
 use std::path::{Path, PathBuf};
+use wasm_zkp_challenge::msm::read_or_generate_instances;
 mod perf;
 
 const TEST_DIR_BASE: &'static str = "./.test";
 
 fn bench_instance_path(count: usize, k: usize) -> PathBuf {
-    Path::new(TEST_DIR_BASE).join(format!("{}x{}", count, k)).join("instances")
+    Path::new(TEST_DIR_BASE)
+        .join(format!("{}x{}", count, k))
+        .join("instances")
 }
 
 fn bench_pippenger_msm(c: &mut Criterion) {

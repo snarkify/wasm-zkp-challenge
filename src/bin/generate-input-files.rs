@@ -1,6 +1,6 @@
 use clap::Parser;
-use wasm_zkp_challenge::msm;
 use std::path::Path;
+use wasm_zkp_challenge::msm;
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
@@ -21,7 +21,9 @@ struct Args {
 fn main() -> Result<(), msm::Error> {
     let args = Args::parse();
 
-    let instances: Vec<_> = (0..args.count).map(|_| msm::Instance::generate(1 << args.size)).collect();
+    let instances: Vec<_> = (0..args.count)
+        .map(|_| msm::Instance::generate(1 << args.size))
+        .collect();
     msm::write_instances(Path::new(&args.dir), &instances, false)?;
     Ok(())
 }

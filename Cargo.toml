@@ -21,7 +21,7 @@ clap = { version = "3.2.8", features = ["derive"] }
 thiserror = { version = "1.0.15" }
 
 # wasm dependencies
-wasm-bindgen = "0.2"
+wasm-bindgen = { version = "0.2.81" }
 
 # crypto dependencies
 rand_chacha = { version = "0.3.1", default-features = false }
@@ -40,7 +40,7 @@ ark-serialize = { path = "../ark/algebra/serialize", features = ["derive"] }
 # all the `std::fmt` and `std::panicking` infrastructure, so isn't great for
 # code size or performance when deploying.
 console_error_panic_hook = { version = "0.1.7", optional = true }
-web-sys = { version = "0.3.58", features=["console"], optional = true }
+web-sys = { version = "0.3.58", optional = true }
 
 [patch.crates-io]
 ark-bls12-381 = { path = "../ark/curves/bls12_381"}
