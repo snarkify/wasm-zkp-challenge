@@ -41,15 +41,15 @@ async function deserialize_file_input() {
 
   const file = instanceInput.files.item(0)
   const data = await file.arrayBuffer()
-  const hash = await crypto.subtle.digest('SHA-256', data)
-  console.log(`Instance input file ${file.name} is of length ${file.size} and hash: ${buffer2hex(hash)}`)
+  // const hash = await crypto.subtle.digest('SHA-256', data)
+  // console.log(`Instance input file ${file.name} is of length ${file.size} and hash: ${buffer2hex(hash)}`)
   // Note that this returns an InstanceObjectVector.
 
-
   performance.mark(MARK_START_DESERIALIZE())
-  const deserialized = deserialize_msm_inputs(Array.from(new Uint8Array(data)))
+  const deserialized = deserialize_msm_inputs(new Uint8Array(data))
   performance.mark(MARK_STOP_DESERIALIZE())
   performance.measure(MEASURE_DESERIALIZE(), MARK_START_DESERIALIZE(), MARK_STOP_DESERIALIZE())
+
   return deserialized
 }
 
@@ -75,20 +75,28 @@ async function load_or_generate_msm_inputs() {
 async function wasm_bench_msm() {
   let out_text = "\n";
 
+  // Clear marks and measures previously written.
+  performance.clearMarks();
+  performance.clearMeasures();
+
   const instances = await load_or_generate_msm_inputs()
   console.log(`Running benchmark with ${instances.length} instances`)
 
   // Note: Using a classic for loop because the Rust object, InstanceObjectVector, does not support
   // the iterator interface.
-  for (let i = 0; i < instances.length; i++) {
-    const instance = instances.at(i)
+  for (let j = 0; j < 1; j++) {
+    for (let i = 0; i < instances.length; i++) {
+      console.log(`Running benchmark with instance ${j}/${i}`)
+      const instance = instances.at(i)
 
-    // Measure the actual MSM computation.
-    performance.mark(MARK_START_MSM(size));
-    compute_msm_opt(instance);        
-    performance.mark(MARK_STOP_MSM(size));
-    performance.measure(MEASURE_MSM(size), MARK_START_MSM(size), MARK_STOP_MSM(size));
+      // Measure the actual MSM computation.
+      performance.mark(MARK_START_MSM(size));
+      compute_msm_opt(instance);     
+      performance.mark(MARK_STOP_MSM(size));
+      performance.measure(MEASURE_MSM(size), MARK_START_MSM(size), MARK_STOP_MSM(size));
+    }
   }
+  console.log(`Finished running benchmark`)
 
   // Extract the performance markers and format the aggregate result from all instances.
   const measures = performance.getEntriesByName(MEASURE_MSM(size), "measure");

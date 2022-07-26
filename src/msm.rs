@@ -37,8 +37,10 @@ impl Instance {
         compute_msm(&self.points, &self.scalars)
     }
 
-    pub fn compute_msm_opt(&self) -> G1Projective {
-        compute_msm_opt(&self.points, &self.scalars)
+    pub fn compute_msm_opt<const COMPLETE: bool, const BATCH_ACC_BUCKETS: bool>(
+        &self,
+    ) -> G1Projective {
+        compute_msm_opt::<COMPLETE, BATCH_ACC_BUCKETS>(&self.points, &self.scalars)
     }
 
     /// Get the size of the instance
@@ -99,8 +101,11 @@ pub fn compute_msm(point_vec: &[G1Affine], scalar_vec: &[BigInt]) -> G1Projectiv
 }
 
 /// Locally optimized version of the variable base MSM algorithm.
-pub fn compute_msm_opt(point_vec: &[G1Affine], scalar_vec: &[BigInt]) -> G1Projective {
-    msm::MultiExp::compute_msm_opt(point_vec, scalar_vec)
+pub fn compute_msm_opt<const COMPLETE: bool, const BATCH_ACC_BUCKETS: bool>(
+    point_vec: &[G1Affine],
+    scalar_vec: &[BigInt],
+) -> G1Projective {
+    msm::MultiExp::compute_msm_opt::<true, false>(point_vec, scalar_vec)
 }
 
 /// Load input vectors from the filesystem if they exist in the given directory.
@@ -168,7 +173,7 @@ mod test {
     use std::path::PathBuf;
 
     // Input sizes to use in the tests below.
-    const K: usize = 16;
+    const K: usize = 12;
     const SIZE: usize = 1 << K;
     const TEST_DIR_BASE: &'static str = "./.test";
 
@@ -195,10 +200,20 @@ mod test {
     fn optimized_msm_doesnt_panic() -> Result<(), Error> {
         let instances = read_or_generate_instances(&test_instance_path(K), 1, SIZE)?;
         let start = Instant::now();
-        let res = instances[0].compute_msm_opt();
+        let res = instances[0].compute_msm_opt::<true, true>();
         let duration = start.elapsed();
         println!("msm_opt with SIZE 1<<{}: {:?}", K, duration);
         println!("\n msm_opt = {:?}\n", res.into_affine());
+        Ok(())
+    }
+
+    #[test]
+    #[serial]
+    fn optimized_and_baseline_agree() -> Result<(), Error> {
+        let instances = read_or_generate_instances(&test_instance_path(K), 1, SIZE)?;
+        let res_base = instances[0].compute_msm();
+        let res_opt = instances[0].compute_msm_opt::<true, true>();
+        assert_eq!(res_base, res_opt);
         Ok(())
     }
 

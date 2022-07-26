@@ -1,6 +1,6 @@
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 use std::path::{Path, PathBuf};
-use wasm_zkp_challenge::msm::read_or_generate_instances;
+use wasm_zkp_challenge::msm::{read_or_generate_instances, Instance};
 mod perf;
 
 const TEST_DIR_BASE: &'static str = "./.test";
@@ -11,31 +11,47 @@ fn bench_instance_path(count: usize, k: usize) -> PathBuf {
         .join("instances")
 }
 
-fn bench_pippenger_msm(c: &mut Criterion) {
-    let mut group = c.benchmark_group("bench_pippenger_msm");
-    for k in [8, 10, 12, 14].iter() {
-        let path = bench_instance_path(1, *k);
-        let instances = read_or_generate_instances(&path, 1, 1 << k).unwrap();
-        // I don't think black_box is needed based on what I am reading in the docs.
-        // Shouldn't really hurt anything though, so I'll just leave it.
-        let input = black_box(&instances[0]);
+const INPUT_SIZES: &'static [usize] = &[16];
 
-        group.throughput(Throughput::Elements(1 << k));
-        group.bench_with_input(
-            BenchmarkId::from_parameter(format!("input_vector_length_2_{}", k)),
-            &input,
-            |b, input| {
+fn bench_msm(c: &mut Criterion) {
+    let functions: &[(&'static str, &dyn Fn(&Instance))] = &[
+        ("baseline", &|input: &Instance| {
+            let _ = input.compute_msm();
+        }),
+        ("opt_false_false", &|input: &Instance| {
+            let _ = input.compute_msm_opt::<false, false>();
+        }),
+        ("opt_true_false", &|input: &Instance| {
+            let _ = input.compute_msm_opt::<true, false>();
+        }),
+        ("opt_true_true", &|input: &Instance| {
+            let _ = input.compute_msm_opt::<true, true>();
+        }),
+    ];
+
+    let mut group = c.benchmark_group("msm");
+    for k in INPUT_SIZES.iter() {
+        for (name, function) in functions {
+            let path = bench_instance_path(1, *k);
+            let instances = read_or_generate_instances(&path, 1, 1 << k).unwrap();
+            // I don't think black_box is needed based on what I am reading in the docs.
+            // Shouldn't really hurt anything though, so I'll just leave it.
+            let input = black_box(&instances[0]);
+
+            group.throughput(Throughput::Elements(1 << k));
+            group.bench_with_input(BenchmarkId::new(*name, k), &input, |b, input| {
                 b.iter(|| {
-                    let _res = input.compute_msm();
+                    let _res = function(input);
                 })
-            },
-        );
+            });
+        }
     }
+    group.finish();
 }
 
 criterion_group! {
     name = benches;
     config = Criterion::default().with_profiler(perf::FlamegraphProfiler::new(100));
-    targets = bench_pippenger_msm
+    targets = bench_msm
 }
 criterion_main!(benches);

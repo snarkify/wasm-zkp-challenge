@@ -1,7 +1,7 @@
 use std::{fs::File, os::raw::c_int, path::Path};
 
 use criterion::profiler::Profiler;
-use pprof::ProfilerGuard;
+use pprof::{protos::Message, ProfilerGuard};
 
 /// Small custom profiler that can be used with Criterion to create a flamegraph for benchmarks.
 /// Also see [the Criterion documentation on this][custom-profiler].
@@ -57,16 +57,21 @@ impl<'a> Profiler for FlamegraphProfiler<'a> {
 
     fn stop_profiling(&mut self, _benchmark_id: &str, benchmark_dir: &Path) {
         std::fs::create_dir_all(benchmark_dir).unwrap();
+
         let flamegraph_path = benchmark_dir.join("flamegraph.svg");
         let flamegraph_file = File::create(&flamegraph_path)
             .expect("File system error while creating flamegraph.svg");
+
+        let pprof_path = benchmark_dir.join("profile.pprof");
+        let pprof_file =
+            &mut File::create(&pprof_path).expect("File system error while creating profile.pprof");
+
         if let Some(profiler) = self.active_profiler.take() {
-            profiler
-                .report()
-                .build()
-                .unwrap()
-                .flamegraph(flamegraph_file)
-                .expect("Error writing flamegraph");
+            let report = profiler.report().build().unwrap();
+
+            report.flamegraph(flamegraph_file).expect("Error writing flamegraph");
+
+            report.pprof().unwrap().write_to_writer(pprof_file).expect("Error writing pprof profile");
         }
     }
 }

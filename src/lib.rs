@@ -1,11 +1,6 @@
 use wasm_bindgen::prelude::*;
 
-use ark_bls12_381::G1Affine;
-use ark_ec::{AffineCurve, ProjectiveCurve};
-use ark_ff::PrimeField;
-use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, Read, SerializationError, Write};
-
-type Result<T> = std::result::Result<T, JsValue>;
+use ark_serialize::CanonicalDeserialize;
 
 #[cfg(feature = "debug")]
 use console_error_panic_hook;
@@ -32,6 +27,7 @@ macro_rules! console_log {
 
 pub mod msm;
 
+/* Included from the origonal harness, but currently unused.
 #[wasm_bindgen]
 pub struct PointVectorInput {
     // What nonsense is this line?
@@ -64,6 +60,7 @@ impl ScalarVectorInput {
         Self { scalar_vec }
     }
 }
+*/
 
 #[wasm_bindgen]
 pub struct InstanceObject {
@@ -124,5 +121,5 @@ pub fn compute_msm(instance: &InstanceObject) {
 #[wasm_bindgen]
 pub fn compute_msm_opt(instance: &InstanceObject) {
     init_panic_hook();
-    let _res = msm::compute_msm_opt(&instance.points, &instance.scalars);
+    let _res = msm::compute_msm_opt::<true, true>(&instance.points, &instance.scalars);
 }
