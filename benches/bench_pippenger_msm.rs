@@ -27,6 +27,9 @@ fn bench_msm(c: &mut Criterion) {
         ("opt_true_true", &|input: &Instance| {
             let _ = input.compute_msm_opt::<true, true>();
         }),
+        ("opt_false_true", &|input: &Instance| {
+            let _ = input.compute_msm_opt::<false, true>();
+        }),
     ];
 
     let mut group = c.benchmark_group("msm");

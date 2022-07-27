@@ -61,8 +61,36 @@ debug = ["console_error_panic_hook", "web-sys/console"]
 # Enable parallel computation in arkworks code. Cannot be used with WASM.
 parallel = ["ark-ec/parallel", "ark-ff/parallel"]
 
+[profile.dev]
+debug-assertions = true
+incremental = true
+opt-level = 1 # Basic optimization
+strip = false
+
 [profile.test]
-opt-level = 3
+debug-assertions = true
+incremental = true
+opt-level = 3 # Full optimization
+strip = false
+
+[profile.bench]
+debug = 2     # Include all debug info
+debug-assertions = false
+incremental = true
+lto = true
+opt-level = 3 # Full optimization
+overflow-checks = false
+strip = false
+
+# TODO(victor): Possibly setup profile guided optimization.
+# https://doc.rust-lang.org/rustc/profile-guided-optimization.html
+[profile.release]
+debug-assertions = false
+incremental = true
+lto = true
+opt-level = 3 # Full optimization
+overflow-checks = false
+strip = true
 
 [[bench]]
 name = "bench_pippenger_msm"

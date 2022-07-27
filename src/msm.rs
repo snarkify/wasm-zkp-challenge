@@ -105,7 +105,7 @@ pub fn compute_msm_opt<const COMPLETE: bool, const BATCH_ACC_BUCKETS: bool>(
     point_vec: &[G1Affine],
     scalar_vec: &[BigInt],
 ) -> G1Projective {
-    msm::MultiExp::compute_msm_opt::<true, false>(point_vec, scalar_vec)
+    msm::MultiExp::compute_msm_opt::<COMPLETE, BATCH_ACC_BUCKETS>(point_vec, scalar_vec)
 }
 
 /// Load input vectors from the filesystem if they exist in the given directory.

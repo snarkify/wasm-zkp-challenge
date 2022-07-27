@@ -23,15 +23,37 @@ Please check detailed documents at our [proposal](https://hackmd.io/@tsunrise/rJ
     ```
 
 ## Run the benchmark
+
 * WASM time:
     ```bash
     ./serve.sh
     ```
     You can view the result at `localhost:8080`.
     Please update [this line](https://github.com/Manta-Network/wasm-zkp-challenge/blob/main/www/index.js#L79-L86) to benchmark different test suites.
+
 * Native time:
     ```bash
     cargo bench
+    ```
+
+### Benchmarking notes
+
+* On Linux, more stable benchmarking results can be achieved by increasing the execution pririty of
+    the benchmark via nice. Here is an example command to do that for native CPU profiling.
+    ```
+    cargo bench & sudo renice -n -10 $! && fg %1
+    ```
+* It's possible to get pprof profile outputs by running the benchmarks with the following command.
+    ```
+    # Run 30 seconds of profiling for each benchmark target.
+    cargo bench --bench bench_pippenger_msm -- --profile-time 30
+    # Do the same thing with increased process priority
+    cargo bench --bench bench_pippenger_msm -- --profile-time 30 & sudo renice -n -10 $! && fg %1
+    ```
+    Profile outputs will be stored at `./target/criterion/msm/$FUNCTION/$INPUT_SIZE/profile/profile.pprof`
+    Profiles can be opened with the pprof tool, which can be installed and run with
+    ```
+    go tool pprof -http localhost:8080 target/criterion/msm/$FUNCTION//$INPUT_SIZE/profile.pprof
     ```
 
 ## Initial Results
