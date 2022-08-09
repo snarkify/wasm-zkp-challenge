@@ -61,6 +61,12 @@ debug = ["console_error_panic_hook", "web-sys/console"]
 # Enable parallel computation in arkworks code. Cannot be used with WASM.
 parallel = ["ark-ec/parallel", "ark-ff/parallel"]
 
+# Enable usage of assembly in arkworks implementations.
+asm = ["ark-ff/asm"]
+
+# Enable use of the prefetch feature in batch_add within ec.
+prefetch = ["ark-ec/prefetch"]
+
 [profile.dev]
 debug-assertions = true
 incremental = true

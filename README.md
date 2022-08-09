@@ -53,7 +53,7 @@ Please check detailed documents at our [proposal](https://hackmd.io/@tsunrise/rJ
     Profile outputs will be stored at `./target/criterion/msm/$FUNCTION/$INPUT_SIZE/profile/profile.pprof`
     Profiles can be opened with the pprof tool, which can be installed and run with
     ```
-    go tool pprof -http localhost:8080 target/criterion/msm/$FUNCTION//$INPUT_SIZE/profile.pprof
+    go tool pprof -http localhost:8080 target/criterion/msm/$FUNCTION/$INPUT_SIZE/profile.pprof
     ```
 
 ## Initial Results
