@@ -69,9 +69,15 @@ impl<'a> Profiler for FlamegraphProfiler<'a> {
         if let Some(profiler) = self.active_profiler.take() {
             let report = profiler.report().build().unwrap();
 
-            report.flamegraph(flamegraph_file).expect("Error writing flamegraph");
+            report
+                .flamegraph(flamegraph_file)
+                .expect("Error writing flamegraph");
 
-            report.pprof().unwrap().write_to_writer(pprof_file).expect("Error writing pprof profile");
+            report
+                .pprof()
+                .unwrap()
+                .write_to_writer(pprof_file)
+                .expect("Error writing pprof profile");
         }
     }
 }

@@ -32,8 +32,8 @@ rand_xorshift = { version = "0.2" }
 ark-bls12-381 = { version = "0.3.0" }
 ark-std = { version = "0.3.0" }
 ark-ff = { version = "0.3.0" }
-ark-ec = { version = "0.3.0" } 
-ark-serialize = { path = "../ark/algebra/serialize", features = ["derive"] } 
+ark-ec = { version = "0.3.0" }
+ark-serialize = { path = "../ark/algebra/serialize", features = ["derive"] }
 
 # The `console_error_panic_hook` crate provides better debugging of panics by
 # logging them with `console.error`. This is great for development, but requires
@@ -67,6 +67,8 @@ asm = ["ark-ff/asm"]
 # Enable use of the prefetch feature in batch_add within ec.
 prefetch = ["ark-ec/prefetch"]
 
+square-no-carry = ["ark-ff/square-no-carry"]
+
 [profile.dev]
 debug-assertions = true
 incremental = true
@@ -86,7 +88,7 @@ incremental = true
 lto = true
 opt-level = 3 # Full optimization
 overflow-checks = false
-strip = false
+strip = false # Leave debug information for profiling
 
 # TODO(victor): Possibly setup profile guided optimization.
 # https://doc.rust-lang.org/rustc/profile-guided-optimization.html

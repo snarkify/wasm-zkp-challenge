@@ -14,27 +14,32 @@ fn bench_instance_path(count: usize, k: usize) -> PathBuf {
 const INPUT_SIZES: &'static [usize] = &[16];
 
 fn bench_msm(c: &mut Criterion) {
-    let functions: &[(&'static str, &dyn Fn(&Instance))] = &[
-        ("baseline", &|input: &Instance| {
+    let functions: &[(&'static str, bool, &dyn Fn(&Instance))] = &[
+        ("baseline", false, &|input: &Instance| {
             let _ = input.compute_msm();
         }),
-        ("opt_false_false", &|input: &Instance| {
+        ("opt_false_false", false, &|input: &Instance| {
             let _ = input.compute_msm_opt::<false, false>();
         }),
-        ("opt_true_false", &|input: &Instance| {
+        ("opt_true_false", false, &|input: &Instance| {
             let _ = input.compute_msm_opt::<true, false>();
         }),
-        ("opt_true_true", &|input: &Instance| {
+        ("opt_true_true", false, &|input: &Instance| {
             let _ = input.compute_msm_opt::<true, true>();
         }),
-        ("opt_false_true", &|input: &Instance| {
+        ("opt_false_true", true, &|input: &Instance| {
             let _ = input.compute_msm_opt::<false, true>();
         }),
     ];
 
     let mut group = c.benchmark_group("msm");
     for k in INPUT_SIZES.iter() {
-        for (name, function) in functions {
+        for (name, enabled, function) in functions {
+            // Check to see if the bench is flagged as enabled above.
+            if !enabled {
+                continue;
+            }
+
             let path = bench_instance_path(1, *k);
             let instances = read_or_generate_instances(&path, 1, 1 << k).unwrap();
             // I don't think black_box is needed based on what I am reading in the docs.
