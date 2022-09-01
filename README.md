@@ -40,21 +40,28 @@ Please check detailed documents at our [proposal](https://hackmd.io/@tsunrise/rJ
 
 * On Linux, more stable benchmarking results can be achieved by increasing the execution pririty of
     the benchmark via nice. Here is an example command to do that for native CPU profiling.
-    ```
-    cargo bench & sudo renice -n -10 $! && fg %1
+    ```bash
+    nice -n -15 cargo bench
     ```
 * It's possible to get pprof profile outputs by running the benchmarks with the following command.
-    ```
-    # Run 30 seconds of profiling for each benchmark target.
-    cargo bench --bench bench_pippenger_msm -- --profile-time 30
-    # Do the same thing with increased process priority
-    cargo bench --bench bench_pippenger_msm -- --profile-time 30 & sudo renice -n -10 $! && fg %1
+    ```bash
+    # Run 30 seconds of profiling for each benchmark target. Use nice to increase priority.
+    nice -n -15 cargo bench --bench bench_pippenger_msm -- --profile-time 30
     ```
     Profile outputs will be stored at `./target/criterion/msm/$FUNCTION/$INPUT_SIZE/profile/profile.pprof`
     Profiles can be opened with the pprof tool, which can be installed and run with
-    ```
+    ```bash
     go tool pprof -http localhost:8080 target/criterion/msm/$FUNCTION/$INPUT_SIZE/profile.pprof
     ```
+* Especially when trying to meausre smaller effects, 100 samples may not be enough. Number of
+    samples can be increased using the `--sample-size` flag.
+    ```bash
+    nice -n -15 cargo bench --bench bench_pippenger_msm -- --sample-size 1000
+    ```
+Note: SUPERCOP, which is a cryptography benchmarking suite, has useful recommendations on reducing
+randomness in benchmarking results, mostly focused on randomness due to clock rate variability.
+
+https://bench.cr.yp.to/supercop.html
 
 ## Initial Results
 

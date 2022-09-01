@@ -69,6 +69,14 @@ pub struct InstanceObject {
 }
 
 #[wasm_bindgen]
+impl InstanceObject {
+    #[wasm_bindgen(method, getter)]
+    pub fn length(&self) -> usize {
+        self.points.len()
+    }
+}
+
+#[wasm_bindgen]
 pub struct InstanceObjectVector {
     instances: Vec<InstanceObject>,
 }
@@ -121,5 +129,5 @@ pub fn compute_msm(instance: &InstanceObject) {
 #[wasm_bindgen]
 pub fn compute_msm_opt(instance: &InstanceObject) {
     init_panic_hook();
-    let _res = msm::compute_msm_opt::<true, true>(&instance.points, &instance.scalars);
+    let _res = msm::compute_msm_opt::<false, true>(&instance.points, &instance.scalars);
 }

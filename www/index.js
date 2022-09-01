@@ -12,7 +12,6 @@ const median = arr => {
 };
 
 // Parameters for generated MSM inputs.
-const size = 10;
 const repeat = 10;
 
 const MARK_START_DESERIALIZE = () => `Start deserialize input`;
@@ -80,7 +79,8 @@ async function wasm_bench_msm() {
   performance.clearMeasures();
 
   const instances = await load_or_generate_msm_inputs()
-  console.log(`Running benchmark with ${instances.length} instances`)
+  const size = Math.floor(Math.log2(instances.at(0).length)) // Assume all instances as same size.
+  console.log(`Running benchmark with ${instances.length} instances of size 2^${size}`)
 
   // Note: Using a classic for loop because the Rust object, InstanceObjectVector, does not support
   // the iterator interface.

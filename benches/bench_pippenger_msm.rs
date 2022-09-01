@@ -15,7 +15,7 @@ const INPUT_SIZES: &'static [usize] = &[16];
 
 fn bench_msm(c: &mut Criterion) {
     let functions: &[(&'static str, bool, &dyn Fn(&Instance))] = &[
-        ("baseline", false, &|input: &Instance| {
+        ("baseline", true, &|input: &Instance| {
             let _ = input.compute_msm();
         }),
         ("opt_false_false", false, &|input: &Instance| {

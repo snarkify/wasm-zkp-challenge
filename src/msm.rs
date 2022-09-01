@@ -97,7 +97,13 @@ pub fn generate_msm_inputs(size: usize) -> (Vec<G1Affine>, Vec<BigInt>) {
 
 /// Currently using Pippenger's algorithm for multi-scalar multiplication (MSM)
 pub fn compute_msm(point_vec: &[G1Affine], scalar_vec: &[BigInt]) -> G1Projective {
-    msm::VariableBase::msm(point_vec, scalar_vec)
+    msm::VariableBaseMSM::msm(
+        point_vec,
+        &scalar_vec
+            .into_iter()
+            .map(|x| ScalarField::from_bigint(*x).unwrap())
+            .collect::<Vec<_>>(),
+    )
 }
 
 /// Locally optimized version of the variable base MSM algorithm.
