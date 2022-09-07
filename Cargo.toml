@@ -71,6 +71,8 @@ std = ["ark-ff/std"]
 prefetch = ["ark-ec/prefetch"]
 
 square-no-carry = ["ark-ff/square-no-carry"]
+no-u128 = ["ark-ff/no-u128"]
+partial-reduce = ["ark-ff/partial-reduce"]
 
 [profile.dev]
 debug-assertions = true
