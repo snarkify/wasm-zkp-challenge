@@ -1,8 +1,9 @@
-import { compute_msm, compute_msm_opt, generate_msm_inputs, deserialize_msm_inputs } from "wasm-prover";
+import { compute_msm_baseline, compute_msm, generate_msm_inputs, deserialize_msm_inputs } from "wasm-prover";
 
 const outputPre = document.getElementById("wasm-prover");
 const instanceInput = document.getElementById("instance-file");
-const runButton = document.getElementById("run-button");
+const runButtonOpt = document.getElementById("run-button-opt");
+const runButtonBase = document.getElementById("run-button-baseline");
 
 // compute the median of an array
 const median = arr => {
@@ -71,7 +72,7 @@ async function load_or_generate_msm_inputs() {
   return generated
 }
 
-async function wasm_bench_msm() {
+async function wasm_bench_msm(opt) {
   let out_text = "\n";
 
   // Clear marks and measures previously written.
@@ -88,10 +89,16 @@ async function wasm_bench_msm() {
     for (let i = 0; i < instances.length; i++) {
       console.log(`Running benchmark with instance ${j}/${i}`)
       const instance = instances.at(i)
+      const points = instance.points()
+      const scalars = instance.scalars()
 
       // Measure the actual MSM computation.
       performance.mark(MARK_START_MSM(size));
-      compute_msm_opt(instance);     
+      if (opt) {
+        compute_msm(points, scalars);     
+      } else {
+        compute_msm_baseline(points, scalars);     
+      }
       performance.mark(MARK_STOP_MSM(size));
       performance.measure(MEASURE_MSM(size), MARK_START_MSM(size), MARK_STOP_MSM(size));
     }
@@ -106,8 +113,14 @@ async function wasm_bench_msm() {
   return out_text;
 }
 
-// benchmarking msm
-runButton.onclick = async () => {
-  outputPre.textContent = `running...`
-  outputPre.textContent = await wasm_bench_msm()
+// benchmarking msm opt
+runButtonOpt.onclick = async () => {
+  outputPre.textContent = `running (opt)...`
+  outputPre.textContent = await wasm_bench_msm(true)
+}
+
+// benchmarking msm baseline
+runButtonBase.onclick = async () => {
+  outputPre.textContent = `running (baseline)...`
+  outputPre.textContent = await wasm_bench_msm(false)
 }

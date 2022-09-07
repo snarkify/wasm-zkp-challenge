@@ -33,14 +33,14 @@ impl Instance {
         Self { points, scalars }
     }
 
-    pub fn compute_msm(&self) -> G1Projective {
-        compute_msm(&self.points, &self.scalars)
+    pub fn compute_msm_baseline(&self) -> G1Projective {
+        compute_msm_baseline(&self.points, &self.scalars)
     }
 
-    pub fn compute_msm_opt<const COMPLETE: bool, const BATCH_ACC_BUCKETS: bool>(
+    pub fn compute_msm<const COMPLETE: bool, const BATCH_ACC_BUCKETS: bool>(
         &self,
     ) -> G1Projective {
-        compute_msm_opt::<COMPLETE, BATCH_ACC_BUCKETS>(&self.points, &self.scalars)
+        compute_msm::<COMPLETE, BATCH_ACC_BUCKETS>(&self.points, &self.scalars)
     }
 
     /// Get the size of the instance
@@ -96,7 +96,7 @@ pub fn generate_msm_inputs(size: usize) -> (Vec<G1Affine>, Vec<BigInt>) {
 }
 
 /// Currently using Pippenger's algorithm for multi-scalar multiplication (MSM)
-pub fn compute_msm(point_vec: &[G1Affine], scalar_vec: &[BigInt]) -> G1Projective {
+pub fn compute_msm_baseline(point_vec: &[G1Affine], scalar_vec: &[BigInt]) -> G1Projective {
     msm::VariableBaseMSM::msm(
         point_vec,
         &scalar_vec
@@ -107,7 +107,7 @@ pub fn compute_msm(point_vec: &[G1Affine], scalar_vec: &[BigInt]) -> G1Projectiv
 }
 
 /// Locally optimized version of the variable base MSM algorithm.
-pub fn compute_msm_opt<const COMPLETE: bool, const BATCH_ACC_BUCKETS: bool>(
+pub fn compute_msm<const COMPLETE: bool, const BATCH_ACC_BUCKETS: bool>(
     point_vec: &[G1Affine],
     scalar_vec: &[BigInt],
 ) -> G1Projective {
@@ -194,7 +194,7 @@ mod test {
     fn baseline_msm_doesnt_panic() -> Result<(), Error> {
         let instances = read_or_generate_instances(&test_instance_path(K), 1, SIZE)?;
         let start = Instant::now();
-        let res = instances[0].compute_msm();
+        let res = instances[0].compute_msm_baseline();
         let duration = start.elapsed();
         println!("baseline with SIZE 1<<{}: {:?}", K, duration);
         println!("\n baseline res = {:?}\n", res.into_affine());
@@ -206,7 +206,7 @@ mod test {
     fn optimized_msm_doesnt_panic() -> Result<(), Error> {
         let instances = read_or_generate_instances(&test_instance_path(K), 1, SIZE)?;
         let start = Instant::now();
-        let res = instances[0].compute_msm_opt::<true, true>();
+        let res = instances[0].compute_msm::<true, true>();
         let duration = start.elapsed();
         println!("msm_opt with SIZE 1<<{}: {:?}", K, duration);
         println!("\n msm_opt = {:?}\n", res.into_affine());
@@ -217,8 +217,8 @@ mod test {
     #[serial]
     fn optimized_and_baseline_agree() -> Result<(), Error> {
         let instances = read_or_generate_instances(&test_instance_path(K), 1, SIZE)?;
-        let res_base = instances[0].compute_msm();
-        let res_opt = instances[0].compute_msm_opt::<true, true>();
+        let res_base = instances[0].compute_msm_baseline();
+        let res_opt = instances[0].compute_msm::<true, true>();
         assert_eq!(res_base, res_opt);
         Ok(())
     }

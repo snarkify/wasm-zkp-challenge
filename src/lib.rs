@@ -27,11 +27,9 @@ macro_rules! console_log {
 
 pub mod msm;
 
-/* Included from the origonal harness, but currently unused.
 #[wasm_bindgen]
 pub struct PointVectorInput {
-    // What nonsense is this line?
-    point_vec: Vec<<<G1Affine as AffineCurve>::Projective as ProjectiveCurve>::Affine>,
+    point_vec: Vec<msm::G1Affine>,
 }
 
 #[wasm_bindgen]
@@ -47,7 +45,7 @@ impl PointVectorInput {
 
 #[wasm_bindgen]
 pub struct ScalarVectorInput {
-    scalar_vec: Vec<<<G1Affine as AffineCurve>::ScalarField as PrimeField>::BigInt>,
+    scalar_vec: Vec<msm::BigInt>,
 }
 
 #[wasm_bindgen]
@@ -60,7 +58,6 @@ impl ScalarVectorInput {
         Self { scalar_vec }
     }
 }
-*/
 
 #[wasm_bindgen]
 pub struct InstanceObject {
@@ -73,6 +70,20 @@ impl InstanceObject {
     #[wasm_bindgen(method, getter)]
     pub fn length(&self) -> usize {
         self.points.len()
+    }
+
+    #[wasm_bindgen(method)]
+    pub fn points(&self) -> PointVectorInput {
+        PointVectorInput {
+            point_vec: self.points.clone(),
+        }
+    }
+
+    #[wasm_bindgen(method)]
+    pub fn scalars(&self) -> ScalarVectorInput {
+        ScalarVectorInput {
+            scalar_vec: self.scalars.clone(),
+        }
     }
 }
 
@@ -121,13 +132,13 @@ pub fn generate_msm_inputs(size: usize) -> InstanceObject {
 }
 
 #[wasm_bindgen]
-pub fn compute_msm(instance: &InstanceObject) {
+pub fn compute_msm_baseline(point_vec: &PointVectorInput, scalar_vec: &ScalarVectorInput) {
     init_panic_hook();
-    let _res = msm::compute_msm(&instance.points, &instance.scalars);
+    let _res = msm::compute_msm_baseline(&point_vec.point_vec, &scalar_vec.scalar_vec);
 }
 
 #[wasm_bindgen]
-pub fn compute_msm_opt(instance: &InstanceObject) {
+pub fn compute_msm(point_vec: &PointVectorInput, scalar_vec: &ScalarVectorInput) {
     init_panic_hook();
-    let _res = msm::compute_msm_opt::<false, true>(&instance.points, &instance.scalars);
+    let _res = msm::compute_msm::<false, true>(&point_vec.point_vec, &scalar_vec.scalar_vec);
 }
