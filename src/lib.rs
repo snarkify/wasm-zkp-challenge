@@ -1,6 +1,7 @@
+use ark_ec::{AffineCurve, ProjectiveCurve};
+use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
+use js_sys::{Array, Uint8Array};
 use wasm_bindgen::prelude::*;
-
-use ark_serialize::CanonicalDeserialize;
 
 #[cfg(feature = "debug")]
 use console_error_panic_hook;
@@ -41,6 +42,55 @@ impl PointVectorInput {
 
         Self { point_vec }
     }
+
+    #[wasm_bindgen(js_name = "toJsArray")]
+    pub fn to_js_array(&self) -> Array {
+        let arr = Array::new_with_length(self.point_vec.len() as u32);
+        for (i, point) in (&self.point_vec).into_iter().enumerate() {
+            let x = point.x;
+            let y = point.y;
+            let is_infinity = point.infinity;
+
+            let mut x_bytes: Vec<u8> = Vec::with_capacity(48);
+            x.serialize(&mut x_bytes).unwrap();
+            let mut y_bytes: Vec<u8> = Vec::with_capacity(48);
+            y.serialize(&mut y_bytes).unwrap();
+
+            let point = Array::new_with_length(3);
+            point.set(0, Uint8Array::from(x_bytes.as_slice()).into());
+            point.set(1, Uint8Array::from(y_bytes.as_slice()).into());
+            point.set(2, is_infinity.into());
+            arr.set(i as u32, point.into());
+        }
+        arr
+    }
+
+    #[wasm_bindgen(js_name = "fromJsArray")]
+    pub fn from_js_array(arr: &Array) -> Self {
+        let mut point_vec = Vec::<msm::G1Affine>::with_capacity(arr.length() as usize);
+        for i in 0..arr.length() {
+            let tuple = Array::from(&arr.get(i));
+
+            // Check whether the given encoded point is the point at infinity.
+            let is_infinity = tuple.get(2).as_bool().unwrap();
+            if is_infinity {
+                point_vec.push(msm::G1Affine::identity());
+                continue;
+            }
+
+            let x_bytes: Vec<u8> = Uint8Array::from(tuple.get(0)).to_vec();
+            let x =
+                <msm::G1Affine as AffineCurve>::BaseField::deserialize(x_bytes.as_slice()).unwrap();
+
+            let y_bytes: Vec<u8> = Uint8Array::from(tuple.get(1)).to_vec();
+            let y =
+                <msm::G1Affine as AffineCurve>::BaseField::deserialize(y_bytes.as_slice()).unwrap();
+
+            point_vec.push(msm::G1Affine::new_unchecked(x, y));
+        }
+
+        Self { point_vec }
+    }
 }
 
 #[wasm_bindgen]
@@ -54,6 +104,28 @@ impl ScalarVectorInput {
     pub fn new(size: usize) -> Self {
         init_panic_hook();
         let (_, scalar_vec) = msm::generate_msm_inputs(size);
+
+        Self { scalar_vec }
+    }
+
+    #[wasm_bindgen(js_name = "toJsArray")]
+    pub fn to_js_array(&self) -> Array {
+        let arr = Array::new_with_length(self.scalar_vec.len() as u32);
+        for (i, scalar) in (&self.scalar_vec).into_iter().enumerate() {
+            let mut bytes: Vec<u8> = Vec::with_capacity(32);
+            scalar.serialize(&mut bytes).unwrap();
+            arr.set(i as u32, Uint8Array::from(bytes.as_slice()).into());
+        }
+        arr
+    }
+
+    #[wasm_bindgen(js_name = "fromJsArray")]
+    pub fn from_js_array(arr: &Array) -> Self {
+        let mut scalar_vec = Vec::<msm::BigInt>::with_capacity(arr.length() as usize);
+        for i in 0..arr.length() {
+            let bytes: Vec<u8> = Uint8Array::from(arr.get(i)).to_vec();
+            scalar_vec.push(msm::BigInt::deserialize(bytes.as_slice()).unwrap());
+        }
 
         Self { scalar_vec }
     }
@@ -110,6 +182,32 @@ impl InstanceObjectVector {
 }
 
 #[wasm_bindgen]
+pub struct PointOutput {
+    point: msm::G1Affine,
+}
+
+#[wasm_bindgen]
+impl PointOutput {
+    #[wasm_bindgen(js_name = "toJsArray")]
+    pub fn to_js_array(&self) -> Array {
+        let x = self.point.x;
+        let y = self.point.y;
+        let is_infinity = self.point.infinity;
+
+        let mut x_bytes: Vec<u8> = Vec::with_capacity(48);
+        x.serialize(&mut x_bytes).unwrap();
+        let mut y_bytes: Vec<u8> = Vec::with_capacity(48);
+        y.serialize(&mut y_bytes).unwrap();
+
+        let point = Array::new_with_length(3);
+        point.set(0, Uint8Array::from(x_bytes.as_slice()).into());
+        point.set(1, Uint8Array::from(y_bytes.as_slice()).into());
+        point.set(2, is_infinity.into());
+        point
+    }
+}
+
+#[wasm_bindgen]
 pub fn deserialize_msm_inputs(data: &[u8]) -> InstanceObjectVector {
     init_panic_hook();
     let instances = Vec::<msm::Instance>::deserialize_unchecked(data).unwrap();
@@ -132,13 +230,39 @@ pub fn generate_msm_inputs(size: usize) -> InstanceObject {
 }
 
 #[wasm_bindgen]
-pub fn compute_msm_baseline(point_vec: &PointVectorInput, scalar_vec: &ScalarVectorInput) {
+pub fn compute_msm_baseline(
+    point_vec: &PointVectorInput,
+    scalar_vec: &ScalarVectorInput,
+) -> PointOutput {
     init_panic_hook();
-    let _res = msm::compute_msm_baseline(&point_vec.point_vec, &scalar_vec.scalar_vec);
+    PointOutput {
+        point: msm::compute_msm_baseline(&point_vec.point_vec, &scalar_vec.scalar_vec)
+            .into_affine(),
+    }
 }
 
 #[wasm_bindgen]
-pub fn compute_msm(point_vec: &PointVectorInput, scalar_vec: &ScalarVectorInput) {
+pub fn compute_msm(point_vec: &PointVectorInput, scalar_vec: &ScalarVectorInput) -> PointOutput {
     init_panic_hook();
-    let _res = msm::compute_msm::<false, true>(&point_vec.point_vec, &scalar_vec.scalar_vec);
+    PointOutput {
+        point: msm::compute_msm::<true, true>(&point_vec.point_vec, &scalar_vec.scalar_vec, None)
+            .into_affine(),
+    }
+}
+
+#[wasm_bindgen]
+pub fn compute_msm_with_c(
+    point_vec: &PointVectorInput,
+    scalar_vec: &ScalarVectorInput,
+    c: usize,
+) -> PointOutput {
+    init_panic_hook();
+    PointOutput {
+        point: msm::compute_msm::<true, true>(
+            &point_vec.point_vec,
+            &scalar_vec.scalar_vec,
+            Some(c),
+        )
+        .into_affine(),
+    }
 }
