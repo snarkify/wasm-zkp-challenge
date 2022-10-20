@@ -37,10 +37,8 @@ impl Instance {
         compute_msm_baseline(&self.points, &self.scalars)
     }
 
-    pub fn compute_msm<const COMPLETE: bool, const BATCH_ACC_BUCKETS: bool>(
-        &self,
-    ) -> G1Projective {
-        compute_msm::<COMPLETE, BATCH_ACC_BUCKETS>(&self.points, &self.scalars)
+    pub fn compute_msm<const COMPLETE: bool, const BATCH_ACC_BUCKETS: bool>(&self) -> G1Projective {
+        compute_msm::<COMPLETE, BATCH_ACC_BUCKETS>(&self.points, &self.scalars, None)
     }
 
     /// Get the size of the instance
@@ -110,8 +108,9 @@ pub fn compute_msm_baseline(point_vec: &[G1Affine], scalar_vec: &[BigInt]) -> G1
 pub fn compute_msm<const COMPLETE: bool, const BATCH_ACC_BUCKETS: bool>(
     point_vec: &[G1Affine],
     scalar_vec: &[BigInt],
+    c: Option<usize>,
 ) -> G1Projective {
-    msm::MultiExp::compute_msm_opt::<COMPLETE, BATCH_ACC_BUCKETS>(point_vec, scalar_vec)
+    msm::MultiExp::compute_msm_opt::<COMPLETE, BATCH_ACC_BUCKETS>(point_vec, scalar_vec, c)
 }
 
 /// Load input vectors from the filesystem if they exist in the given directory.

@@ -41,9 +41,12 @@ ark-serialize = { path = "../ark/algebra/serialize", features = ["derive"] }
 # code size or performance when deploying.
 console_error_panic_hook = { version = "0.1.7", optional = true }
 web-sys = { version = "0.3.58", optional = true }
+js-sys = { version = "0.3.58" }
+
+minicov = { version = "0.2", optional = true }
 
 [patch.crates-io]
-ark-bls12-381 = { path = "../ark/curves/bls12_381"}
+ark-bls12-381 = { path = "../ark/curves/bls12_381" }
 ark-ec = { path = "../ark/algebra/ec" }
 ark-ff = { path = "../ark/algebra/ff" }
 ark-std = { git = "https://github.com/arkworks-rs/std", rev="05b7a19a" }
@@ -61,18 +64,26 @@ debug = ["console_error_panic_hook", "web-sys/console"]
 # Enable parallel computation in arkworks code. Cannot be used with WASM.
 parallel = ["ark-ec/parallel", "ark-ff/parallel"]
 
-# Enable usage of assembly in arkworks implementations.
+# Enable usage of (x86) assembly in arkworks implementations.
 asm = ["ark-ff/asm"]
 
-# DO NOT MERGE?
-std = ["ark-ff/std"]
+std = ["ark-ff/std", "ark-ec/std", "ark-bls12-381/std"]
+
+cli = ["clap", "std"]
 
 # Enable use of the prefetch feature in batch_add within ec.
 prefetch = ["ark-ec/prefetch"]
 
+# Optimization features implemented in the finite-field implementation.
 square-no-carry = ["ark-ff/square-no-carry"]
 no-u128 = ["ark-ff/no-u128"]
 partial-reduce = ["ark-ff/partial-reduce"]
+simplified-is-zero = ["ark-ec/simplified-is-zero"]
+
+# Combined feature definition for the best known configuration.
+zprize-opt = ["no-u128", "partial-reduce", "simplified-is-zero", "square-no-carry"]
+
+coverage = ["minicov"]
 
 [profile.dev]
 debug-assertions = true
@@ -82,6 +93,7 @@ strip = false
 
 [profile.test]
 debug-assertions = true
+overflow-checks = true
 incremental = true
 opt-level = 3 # Full optimization
 strip = false
@@ -109,3 +121,15 @@ strip = false
 [[bench]]
 name = "bench_pippenger_msm"
 harness = false
+
+[[bin]]         
+name = "generate-input-files"    
+required-features = ["cli"]
+
+[[bin]]         
+name = "hash-input-files"
+required-features = ["cli"]
+
+[[bin]]         
+name = "foo"    
+required-features = ["cli"]
