@@ -1,6 +1,7 @@
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 use std::path::{Path, PathBuf};
 use wasm_zkp_challenge::msm::{read_or_generate_instances, Instance};
+
 mod perf;
 
 const TEST_DIR_BASE: &'static str = "./.test";
@@ -11,11 +12,11 @@ fn bench_instance_path(count: usize, k: usize) -> PathBuf {
         .join("instances")
 }
 
-const INPUT_SIZES: &'static [usize] = &[16];
+const INPUT_SIZES: &'static [usize] = &[12];
 
 fn bench_msm(c: &mut Criterion) {
     let functions: &[(&'static str, bool, &dyn Fn(&Instance))] = &[
-        ("baseline", true, &|input: &Instance| {
+        ("baseline", false, &|input: &Instance| {
             let _ = input.compute_msm_baseline();
         }),
         ("opt_false_false", false, &|input: &Instance| {
@@ -24,7 +25,7 @@ fn bench_msm(c: &mut Criterion) {
         ("opt_true_false", false, &|input: &Instance| {
             let _ = input.compute_msm::<true, false>();
         }),
-        ("opt_true_true", false, &|input: &Instance| {
+        ("opt_true_true", true, &|input: &Instance| {
             let _ = input.compute_msm::<true, true>();
         }),
         ("opt_false_true", true, &|input: &Instance| {
