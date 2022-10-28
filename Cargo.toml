@@ -68,7 +68,14 @@ parallel = ["ark-ec/parallel", "ark-ff/parallel"]
 # Enable usage of (x86) assembly in arkworks implementations.
 asm = ["ark-ff/asm"]
 
-std = ["ark-ff/std", "ark-ec/std", "ark-bls12-381/std"]
+std = [
+  "ark-ff/std",
+  "ark-ec/std",
+  "ark-bls12-381/std",
+  "ark-serialize/std",
+  "ark-std/std",
+  "bytes/std"
+]
 
 cli = ["clap", "std"]
 
