@@ -1,9 +1,10 @@
-import { compute_msm_baseline, compute_msm, compute_msm_with_c, generate_msm_inputs, deserialize_msm_inputs, ScalarVectorInput, PointVectorInput } from "wasm-prover";
+import { compute_msm_baseline, compute_msm, compute_msm_with_c, generate_msm_inputs, deserialize_msm_inputs, ScalarVectorInput, PointVectorInput, minicov_capture_coverage } from "wasm-prover";
 
 const outputPre = document.getElementById("wasm-prover");
 const instanceInput = document.getElementById("instance-file");
 const runButtonOpt = document.getElementById("run-button-opt");
 const runButtonBase = document.getElementById("run-button-baseline");
+const profileButton = document.getElementById("profile-button");
 
 // Parameters for generated MSM inputs.
 const MSM_GENERATE_NUM = 10;
@@ -146,6 +147,14 @@ async function wasm_bench_msm(opt) {
   return out_text;
 }
 
+function saveByteArray(filename, bytes) {
+    var blob = new Blob([bytes], {type: "application/profraw"});
+    var link = document.createElement('a');
+    link.href = window.URL.createObjectURL(blob);
+    link.download = filename;
+    link.click();
+};
+
 // benchmarking msm opt
 runButtonOpt.onclick = async () => {
   outputPre.textContent = `running (opt)...`
@@ -156,4 +165,10 @@ runButtonOpt.onclick = async () => {
 runButtonBase.onclick = async () => {
   outputPre.textContent = `running (baseline)...`
   outputPre.textContent = await wasm_bench_msm(false)
+}
+
+// benchmarking msm baseline
+profileButton.onclick = async () => {
+  const coverage = minicov_capture_coverage()
+  saveByteArray("profile.profraw", coverage)
 }

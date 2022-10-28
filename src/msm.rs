@@ -2,11 +2,16 @@ pub use ark_bls12_381::{G1Affine, G1Projective};
 use ark_ec::{msm, AffineCurve, ProjectiveCurve};
 use ark_ff::{fields::BitIteratorLE, PrimeField, UniformRand, Zero};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, Read, SerializationError, Write};
+#[cfg(feature = "std")]
 use blake3::Hash;
+#[cfg(feature = "std")]
 use bytes::BufMut;
+#[cfg(feature = "std")]
 use std::fs::{create_dir_all, File};
+#[cfg(feature = "std")]
 use std::path::Path;
 
+#[cfg(feature = "std")]
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("could not serialize")]
@@ -115,6 +120,7 @@ pub fn compute_msm<const COMPLETE: bool, const BATCH_ACC_BUCKETS: bool>(
 
 /// Load input vectors from the filesystem if they exist in the given directory.
 /// If not, generate and save new input vectors of the requests size.
+#[cfg(feature = "std")]
 pub fn read_or_generate_instances<P: AsRef<Path>>(
     path: P,
     count: usize,
@@ -133,6 +139,7 @@ pub fn read_or_generate_instances<P: AsRef<Path>>(
     Ok(generated)
 }
 
+#[cfg(feature = "std")]
 pub fn write_instances<P: AsRef<Path>>(
     path: P,
     instances: &[Instance],
@@ -156,6 +163,7 @@ pub fn write_instances<P: AsRef<Path>>(
     Ok(())
 }
 
+#[cfg(feature = "std")]
 pub fn read_instances<P: AsRef<Path>>(path: P) -> Result<Vec<Instance>, Error> {
     let file = File::open(path)?;
 
@@ -164,6 +172,7 @@ pub fn read_instances<P: AsRef<Path>>(path: P) -> Result<Vec<Instance>, Error> {
     Ok(instances)
 }
 
+#[cfg(feature = "std")]
 pub fn hash<E: CanonicalSerialize>(elements: &[E]) -> Result<Hash, Error> {
     let mut buffer = vec![].writer();
     elements.serialize_unchecked(&mut buffer)?;
@@ -178,7 +187,7 @@ mod test {
     use std::path::PathBuf;
 
     // Input sizes to use in the tests below.
-    const K: usize = 12;
+    const K: usize = 14;
     const SIZE: usize = 1 << K;
     const TEST_DIR_BASE: &'static str = "./.test";
 

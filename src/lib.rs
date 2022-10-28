@@ -139,19 +139,19 @@ pub struct InstanceObject {
 
 #[wasm_bindgen]
 impl InstanceObject {
-    #[wasm_bindgen(method, getter)]
+    #[wasm_bindgen(getter)]
     pub fn length(&self) -> usize {
         self.points.len()
     }
 
-    #[wasm_bindgen(method)]
+    #[wasm_bindgen]
     pub fn points(&self) -> PointVectorInput {
         PointVectorInput {
             point_vec: self.points.clone(),
         }
     }
 
-    #[wasm_bindgen(method)]
+    #[wasm_bindgen]
     pub fn scalars(&self) -> ScalarVectorInput {
         ScalarVectorInput {
             scalar_vec: self.scalars.clone(),
@@ -166,7 +166,7 @@ pub struct InstanceObjectVector {
 
 #[wasm_bindgen]
 impl InstanceObjectVector {
-    #[wasm_bindgen(method, getter)]
+    #[wasm_bindgen(getter)]
     pub fn length(&self) -> usize {
         self.instances.len()
     }
@@ -265,4 +265,10 @@ pub fn compute_msm_with_c(
         )
         .into_affine(),
     }
+}
+
+#[cfg(feature = "coverage")]
+#[wasm_bindgen]
+pub fn minicov_capture_coverage() -> Vec<u8> {
+    minicov::capture_coverage()
 }
