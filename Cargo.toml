@@ -21,7 +21,18 @@ clap = { version = "3.2.8", features = ["std", "derive"], optional=true }
 thiserror = { version = "1.0.15", default-features = false }
 
 # wasm dependencies
-wasm-bindgen = { version = "0.2.84", default-features = false }
+# If using a locally modified build of wasm-bindgen, change the version to an unpulbished version
+# (e.g. 0.2.84 at this time of writing) to ensure that wasm-pack does not attempt to download a
+# prebuilt version.
+wasm-bindgen = { version = "0.2.83", default-features = false }
+
+# The `console_error_panic_hook` crate provides better debugging of panics by
+# logging them with `console.error`. This is great for development, but requires
+# all the `std::fmt` and `std::panicking` infrastructure, so isn't great for
+# code size or performance when deploying.
+console_error_panic_hook = { version = "0.1.7", optional = true }
+web-sys = { version = "0.3.58", optional = true }
+js-sys = { version = "0.3.58" }
 
 # crypto dependencies
 rand_chacha = { version = "0.3.1", default-features = false }
@@ -35,14 +46,6 @@ ark-ff = { version = "0.3.0", default-features = false }
 ark-ec = { version = "0.3.0", default-features = false }
 ark-serialize = { path = "../ark/algebra/serialize", features = ["derive"], default-features = false }
 
-# The `console_error_panic_hook` crate provides better debugging of panics by
-# logging them with `console.error`. This is great for development, but requires
-# all the `std::fmt` and `std::panicking` infrastructure, so isn't great for
-# code size or performance when deploying.
-console_error_panic_hook = { version = "0.1.7", optional = true }
-web-sys = { version = "0.3.58", optional = true }
-js-sys = { version = "0.3.58" }
-
 minicov = { path = "../minicov/minicov", optional = true }
 
 [patch.crates-io]
@@ -50,7 +53,7 @@ ark-bls12-381 = { path = "../ark/curves/bls12_381" }
 ark-ec = { path = "../ark/algebra/ec" }
 ark-ff = { path = "../ark/algebra/ff" }
 ark-std = { git = "https://github.com/arkworks-rs/std", rev="05b7a19a" }
-wasm-bindgen = { path = "../wasm-bindgen" }
+# wasm-bindgen = { path = "../wasm-bindgen" }
 
 [dev-dependencies]
 criterion = { version = "0.3", features = ["html_reports"] }
@@ -58,6 +61,10 @@ pprof = { version = "0.10", features = ["flamegraph", "protobuf-codec"] }
 serial_test = { version = "0.8.0" }
 
 [features]
+
+# Enable by default the set of features created to compile in ZPrize optimization for WASM.
+default = ["zprize-opt"]
+
 # Include a panic hook for printing panic messages to the JS console and web_sys support for adding
 # console::log statements.
 debug = ["console_error_panic_hook", "web-sys/console"]
@@ -77,20 +84,24 @@ std = [
   "bytes/std"
 ]
 
+# Set when building the CLI scripts included in the src/bin directory.
 cli = ["clap", "std"]
 
 # Enable use of the prefetch feature in batch_add within ec.
+# Note that this feature is only available on x86.
 prefetch = ["ark-ec/prefetch"]
 
 # Optimization features implemented in the finite-field implementation.
 square-no-carry = ["ark-ff/square-no-carry"]
 no-u128 = ["ark-ff/no-u128"]
 partial-reduce = ["ark-ff/partial-reduce"]
+
 simplified-is-zero = ["ark-ec/simplified-is-zero"]
 
 # Combined feature definition for the best known configuration.
 zprize-opt = ["no-u128", "partial-reduce", "simplified-is-zero", "square-no-carry"]
 
+# Enable coverage profiling using minicov, which is a coverage utility not dependent on std or libc.
 coverage = ["minicov"]
 
 [profile.dev]
@@ -115,8 +126,6 @@ opt-level = 3 # Full optimization
 overflow-checks = false
 strip = false # Leave debug information for profiling
 
-# TODO(victor): Possibly setup profile guided optimization.
-# https://doc.rust-lang.org/rustc/profile-guided-optimization.html
 [profile.release]
 debug = 2     # Include all debug info
 debug-assertions = false
